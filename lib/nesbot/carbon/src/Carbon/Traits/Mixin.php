@@ -105,7 +105,9 @@ trait Mixin
 
             static::macro($name, function () use ($closureBase, $className) {
                 /** @phpstan-ignore-next-line */
+                // ! Percobaan, kalau nanti dalam sistem SLiMS ada yang error, berarti baris kode 109 harus diuncomment dan baris 110 di commented
                 $context = isset($this) ? $this->cast($className) : new $className();
+                // $context = static::this()->cast($className);
 
                 try {
                     // @ is required to handle error if not converted into exceptions
@@ -124,7 +126,7 @@ trait Mixin
 
     private static function getAnonymousClassCodeForTrait(string $trait)
     {
-        return 'return new class() extends '.static::class.' {use '.$trait.';};';
+        return 'return new class() extends ' . static::class . ' {use ' . $trait . ';};';
     }
 
     private static function getMixableMethods(self $context): Generator
