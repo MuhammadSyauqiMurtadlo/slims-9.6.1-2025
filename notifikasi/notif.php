@@ -53,6 +53,9 @@ $wablas_url = "https://tegal.wablas.com/api/v2/send-message";
 $token = "YzUXeFJCCTcRtfxBnK3fO7Pr6ImdAzWlCOPufuc1gwjXQN9J1J21hze";
 $secret_key = "CoIaeNLW";
 
+// Gabungkan token dan secret key dengan titik
+$auth_token = $token . "." . $secret_key;
+
 // Query untuk ambil data peminjaman yang jatuh tempo besok
 $sql = "
     SELECT 
@@ -164,17 +167,19 @@ while ($row = mysqli_fetch_assoc($res)) {
   curl_setopt_array($ch, [
     CURLOPT_URL => $wablas_url,
     CURLOPT_HTTPHEADER => [
-      "Authorization: $token",
-      "secret-key: $secret_key",
+      "Authorization: $auth_token",
       "Content-Type: application/json"
     ],
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => $payload,
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 30,
-    CURLOPT_CONNECTTIMEOUT => 10,
+    CURLOPT_TIMEOUT => 60,           // Naikkan timeout
+    CURLOPT_CONNECTTIMEOUT => 30,    // Naikkan connect timeout
     CURLOPT_SSL_VERIFYPEER => false,
-    CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4
+    CURLOPT_SSL_VERIFYHOST => false, // Tambah ini
+    CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+    CURLOPT_FOLLOWLOCATION => true,  // Tambah ini
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1 // Tambah ini
   ]);
 
   $response = curl_exec($ch);
