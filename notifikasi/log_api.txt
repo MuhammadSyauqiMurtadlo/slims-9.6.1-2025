@@ -1,0 +1,120 @@
+[2025-11-17 06:15:40] ======================================================================
+[2025-11-17 06:15:40] START EXECUTION
+[2025-11-17 06:15:40] ======================================================================
+[2025-11-17 06:15:40] ✅ Database connected successfully
+[2025-11-17 06:15:40] 🔍 Executing query...
+[2025-11-17 06:15:40] 📊 Total data found: 1
+[2025-11-17 06:15:40] 
+[2025-11-17 06:15:40] --- Processing Loan ID: 24 ---
+[2025-11-17 06:15:40] Member: Muhammad Syauqi Murtadlo
+[2025-11-17 06:15:40] Raw Phone: 6281233970793
+[2025-11-17 06:15:40] Item Code: P0010S
+[2025-11-17 06:15:40] 📱 Normalized Phone: 6281233970793
+[2025-11-17 06:15:40] 📤 Sending to WhatsApp API...
+[2025-11-17 06:15:40] HTTP Code: 403
+[2025-11-17 06:15:40] Response: {"status":false,"message":"Access denied: Your IP (2400:9800:701:ba93:a0d9:b3fd:cbb:966b) is not authorized. Or need secret key","whitelist_ip":"140.213.52.129"}
+[2025-11-17 06:15:40] ❌ FAILED: Access denied: Your IP (2400:9800:701:ba93:a0d9:b3fd:cbb:966b) is not authorized. Or need secret key
+[2025-11-17 06:15:41] 
+[2025-11-17 06:15:41] ======================================================================
+[2025-11-17 06:15:41] EXECUTION SUMMARY
+[2025-11-17 06:15:41] Total Records: 1
+[2025-11-17 06:15:41] ✅ Success: 0
+[2025-11-17 06:15:41] ❌ Failed: 1
+[2025-11-17 06:15:41] ⚠️  Skipped: 0
+[2025-11-17 06:15:41] END EXECUTION
+[2025-11-17 06:15:41] ======================================================================
+[2025-11-17 07:03:05] ======================================================================
+[2025-11-17 07:03:05] START EXECUTION
+[2025-11-17 07:03:05] ======================================================================
+[2025-11-17 07:03:05] ✅ Database connected successfully
+[2025-11-17 07:03:05] 🔍 Executing query...
+[2025-11-17 07:03:05] 📊 Total data found: 1
+[2025-11-17 07:03:05] 
+[2025-11-17 07:03:05] --- Processing Loan ID: 24 ---
+[2025-11-17 07:03:05] Member: Muhammad Syauqi Murtadlo
+[2025-11-17 07:03:05] Raw Phone: 6281233970793
+[2025-11-17 07:03:05] Item Code: P0010S
+[2025-11-17 07:03:05] 📱 Normalized Phone: 6281233970793
+[2025-11-17 07:03:05] 📤 Sending to WhatsApp API...
+[2025-11-17 07:03:06] HTTP Code: 403
+[2025-11-17 07:03:06] Response: {"status":false,"message":"Access denied: Your IP (112.215.237.200) is not authorized. Or need secret key","whitelist_ip":"140.213.52.129"}
+[2025-11-17 07:03:06] ❌ FAILED: Access denied: Your IP (112.215.237.200) is not authorized. Or need secret key
+[2025-11-17 07:03:06] 
+[2025-11-17 07:03:06] ======================================================================
+[2025-11-17 07:03:06] EXECUTION SUMMARY
+[2025-11-17 07:03:06] Total Records: 1
+[2025-11-17 07:03:06] ✅ Success: 0
+[2025-11-17 07:03:06] ❌ Failed: 1
+[2025-11-17 07:03:06] ⚠️  Skipped: 0
+[2025-11-17 07:03:06] END EXECUTION
+[2025-11-17 07:03:06] ======================================================================
+[2025-11-17 07:07:08] ======================================================================
+[2025-11-17 07:07:08] START EXECUTION
+[2025-11-17 07:07:08] ======================================================================
+[2025-11-17 07:07:08] ✅ Database connected successfully
+[2025-11-17 07:07:08] 🔍 Executing query...
+[2025-11-17 07:07:08] 📊 Total data found: 2
+[2025-11-17 07:07:08] 
+[2025-11-17 07:07:08] --- Processing Loan ID: 24 ---
+[2025-11-17 07:07:08] Member: Muhammad Syauqi Murtadlo
+[2025-11-17 07:07:08] Raw Phone: 6281233970793
+[2025-11-17 07:07:08] Item Code: P0010S
+[2025-11-17 07:07:08] 📱 Normalized Phone: 6281233970793
+[2025-11-17 07:07:08] 📤 Sending to WhatsApp API...
+[2025-11-17 07:07:09] HTTP Code: 403
+[2025-11-17 07:07:09] Response: {"status":false,"message":"Access denied: Your IP (112.215.237.200) is not authorized. Or need secret key","whitelist_ip":"140.213.52.129"}
+[2025-11-17 07:07:09] ❌ FAILED: Access denied: Your IP (112.215.237.200) is not authorized. Or need secret key
+[2025-11-17 07:07:09] 
+[2025-11-17 07:07:09] --- Processing Loan ID: 25 ---
+[2025-11-17 07:07:09] Member: Muhammad Syauqi Murtadlo
+[2025-11-17 07:07:09] Raw Phone: 6281233970793
+[2025-11-17 07:07:09] Item Code: P0009S
+[2025-11-17 07:07:09] 📱 Normalized Phone: 6281233970793
+[2025-11-17 07:07:09] 📤 Sending to WhatsApp API...
+[2025-11-17 07:07:11] HTTP Code: 403
+[2025-11-17 07:07:11] Response: {"status":false,"message":"Access denied: Your IP (112.215.237.200) is not authorized. Or need secret key","whitelist_ip":"140.213.52.129"}
+[2025-11-17 07:07:11] ❌ FAILED: Access denied: Your IP (112.215.237.200) is not authorized. Or need secret key
+[2025-11-17 07:07:11] 
+[2025-11-17 07:07:11] ======================================================================
+[2025-11-17 07:07:11] EXECUTION SUMMARY
+[2025-11-17 07:07:11] Total Records: 2
+[2025-11-17 07:07:11] ✅ Success: 0
+[2025-11-17 07:07:11] ❌ Failed: 2
+[2025-11-17 07:07:11] ⚠️  Skipped: 0
+[2025-11-17 07:07:11] END EXECUTION
+[2025-11-17 07:07:11] ======================================================================
+[2025-11-17 07:47:28] ======================================================================
+[2025-11-17 07:47:28] START EXECUTION
+[2025-11-17 07:47:28] ======================================================================
+[2025-11-17 07:47:28] ✅ Database connected successfully
+[2025-11-17 07:47:28] 🔍 Executing query...
+[2025-11-17 07:47:28] 📊 Total data found: 2
+[2025-11-17 07:47:28] 
+[2025-11-17 07:47:28] --- Processing Loan ID: 24 ---
+[2025-11-17 07:47:28] Member: Muhammad Syauqi Murtadlo
+[2025-11-17 07:47:28] Raw Phone: 6281233970793
+[2025-11-17 07:47:28] Item Code: P0010S
+[2025-11-17 07:47:28] 📱 Normalized Phone: 6281233970793
+[2025-11-17 07:47:28] 📤 Sending to WhatsApp API...
+[2025-11-17 07:47:29] HTTP Code: 403
+[2025-11-17 07:47:29] Response: {"status":false,"message":"Access denied: Your IP (112.215.237.200) is not authorized. Or need secret key","whitelist_ip":null}
+[2025-11-17 07:47:29] ❌ FAILED: Access denied: Your IP (112.215.237.200) is not authorized. Or need secret key
+[2025-11-17 07:47:29] 
+[2025-11-17 07:47:29] --- Processing Loan ID: 26 ---
+[2025-11-17 07:47:29] Member: Muhammad Syauqi Murtadlo
+[2025-11-17 07:47:29] Raw Phone: 6281233970793
+[2025-11-17 07:47:29] Item Code: P0004S
+[2025-11-17 07:47:29] 📱 Normalized Phone: 6281233970793
+[2025-11-17 07:47:29] 📤 Sending to WhatsApp API...
+[2025-11-17 07:47:30] HTTP Code: 403
+[2025-11-17 07:47:30] Response: {"status":false,"message":"Access denied: Your IP (112.215.237.200) is not authorized. Or need secret key","whitelist_ip":null}
+[2025-11-17 07:47:30] ❌ FAILED: Access denied: Your IP (112.215.237.200) is not authorized. Or need secret key
+[2025-11-17 07:47:31] 
+[2025-11-17 07:47:31] ======================================================================
+[2025-11-17 07:47:31] EXECUTION SUMMARY
+[2025-11-17 07:47:31] Total Records: 2
+[2025-11-17 07:47:31] ✅ Success: 0
+[2025-11-17 07:47:31] ❌ Failed: 2
+[2025-11-17 07:47:31] ⚠️  Skipped: 0
+[2025-11-17 07:47:31] END EXECUTION
+[2025-11-17 07:47:31] ======================================================================
