@@ -144,11 +144,15 @@ while ($row = mysqli_fetch_assoc($res)) {
   writeLog("📱 Normalized Phone: $phone");
 
   // Format pesan WhatsApp
-  $message = "Halo *$nama*, 👋\n\n"
-    . "Ini pengingat bahwa buku dengan kode *$item* akan jatuh tempo besok.\n\n"
-    . "📅 Tanggal jatuh tempo: *$due*\n\n"
-    . "Mohon dikembalikan tepat waktu ya 😊\n\n"
-    . "—Perpustakaan Unwaha";
+  $message  = "*PERPUSTAKAAN UNWAHA*\n\n";
+  $message .= "Halo *$nama*,\n";
+  $message .= "Ini adalah pengingat bahwa buku yang Anda pinjam akan *jatuh tempo besok*.\n\n";
+  $message .= "*Kode Buku*  : $item\n";
+  $message .= "*Jatuh Tempo*: $due\n\n";
+  $message .= "Mohon dikembalikan tepat waktu ya.\n\n";
+  $message .= "Terima kasih.\n";
+  $message .= "— *Pustakawan Unwaha*";
+
 
   // Send via Wablas API - FORMAT ARRAY
   $payload = json_encode([
