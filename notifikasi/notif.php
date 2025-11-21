@@ -152,8 +152,6 @@ while ($row = mysqli_fetch_assoc($res)) {
   $message .= "Mohon dikembalikan tepat waktu ya.\n\n";
   $message .= "Terima kasih.\n";
   $message .= "— *Pustakawan Unwaha*";
-
-
   // Send via Wablas API - FORMAT ARRAY
   $payload = json_encode([
     'data' => [
