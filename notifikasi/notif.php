@@ -57,21 +57,40 @@ $secret_key = "CoIaeNLW";
 $auth_token = $token . "." . $secret_key;
 
 // Query untuk ambil data peminjaman yang jatuh tempo besok
+// $sql = "
+//     SELECT 
+//         l.loan_id,
+//         l.item_code,
+//         l.due_date,
+//         m.member_id,
+//         m.member_name,
+//         m.member_phone
+//     FROM loan AS l
+//     INNER JOIN member AS m ON m.member_id = l.member_id
+//     WHERE DATE(l.due_date) = CURDATE() + INTERVAL 1 DAY
+//     AND l.is_return = 0
+//     AND l.is_lent = 1
+//     AND m.member_phone IS NOT NULL
+//     AND m.member_phone != ''
+// ";
 $sql = "
-    SELECT 
-        l.loan_id,
-        l.item_code,
-        l.due_date,
-        m.member_id,
-        m.member_name,
-        m.member_phone
-    FROM loan AS l
-    INNER JOIN member AS m ON m.member_id = l.member_id
-    WHERE DATE(l.due_date) = CURDATE() + INTERVAL 1 DAY
-    AND l.is_return = 0
-    AND l.is_lent = 1
-    AND m.member_phone IS NOT NULL
-    AND m.member_phone != ''
+    SELECT
+    l.loan_id,
+    l.item_code,
+    l.due_date,
+    m.member_id,
+    m.member_name,
+    m.member_phone,
+    b.title AS book_title
+FROM loan AS l
+INNER JOIN member AS m ON m.member_id = l.member_id
+INNER JOIN item AS i ON i.item_code = l.item_code
+INNER JOIN biblio AS b ON b.biblio_id = i.biblio_id
+WHERE DATE(l.due_date) = CURDATE() + INTERVAL 1 DAY
+AND l.is_return = 0
+AND l.is_lent = 1
+AND m.member_phone IS NOT NULL
+AND m.member_phone != ''
 ";
 
 writeLog("🔍 Executing query...");
@@ -101,6 +120,7 @@ $skippedCount = 0;
 
 // Loop setiap data
 while ($row = mysqli_fetch_assoc($res)) {
+  $bookTitle = $row['book_title'];
   $nama = $row['member_name'];
   $phone = $row['member_phone'];
   $item = $row['item_code'];
@@ -147,6 +167,7 @@ while ($row = mysqli_fetch_assoc($res)) {
   $message  = "*PERPUSTAKAAN UNWAHA*\n\n";
   $message .= "Halo *$nama*,\n";
   $message .= "Ini adalah pengingat bahwa buku yang Anda pinjam akan *jatuh tempo besok*.\n\n";
+  $message .= "*Judul Buku*: $bookTitle\n";
   $message .= "*Kode Buku*  : $item\n";
   $message .= "*Jatuh Tempo*: $due\n\n";
   $message .= "Mohon dikembalikan tepat waktu ya.\n\n";

@@ -297,3 +297,53 @@
 [2025-11-17 19:17:58] ⚠️  Skipped: 0
 [2025-11-17 19:17:58] END EXECUTION
 [2025-11-17 19:17:58] ======================================================================
+[2025-12-07 13:47:03] ======================================================================
+[2025-12-07 13:47:03] START EXECUTION
+[2025-12-07 13:47:03] ======================================================================
+[2025-12-07 13:47:03] ✅ Database connected successfully
+[2025-12-07 13:47:03] 🔍 Executing query...
+[2025-12-07 13:47:03] 📊 Total data found: 1
+[2025-12-07 13:47:03] 
+[2025-12-07 13:47:03] --- Processing Loan ID: 34 ---
+[2025-12-07 13:47:03] Member: Muhammad Syauqi Murtadlo
+[2025-12-07 13:47:03] Raw Phone: 6281233970793
+[2025-12-07 13:47:03] Item Code: P0009S
+[2025-12-07 13:47:03] 📱 Normalized Phone: 6281233970793
+[2025-12-07 13:47:03] 📤 Sending to WhatsApp API...
+[2025-12-07 13:47:05] HTTP Code: 200
+[2025-12-07 13:47:05] Response: {"status":true,"message":"Text Message is pending and waiting to be processed","data":{"device_id":"U6D48K","quota":677,"messages":[{"id":"31f61a90-4ff2-4d6e-a727-9cb88051cae2","phone":"6281233970793","message":"*PERPUSTAKAAN UNWAHA*\n\nHalo *Muhammad Syauqi Murtadlo*,\nIni adalah pengingat bahwa buku yang Anda pinjam akan *jatuh tempo besok*.\n\n*Kode Buku*  : P0009S\n*Jatuh Tempo*: 2025-12-08\n\nMohon dikembalikan tepat waktu ya.\n\nTerima kasih.\n— *Pustakawan Unwaha*","status":"pending","ref_id":""}]}}
+[2025-12-07 13:47:05] ✅ SUCCESS: Message sent to 6281233970793
+[2025-12-07 13:47:06] 
+[2025-12-07 13:47:06] ======================================================================
+[2025-12-07 13:47:06] EXECUTION SUMMARY
+[2025-12-07 13:47:06] Total Records: 1
+[2025-12-07 13:47:06] ✅ Success: 1
+[2025-12-07 13:47:06] ❌ Failed: 0
+[2025-12-07 13:47:06] ⚠️  Skipped: 0
+[2025-12-07 13:47:06] END EXECUTION
+[2025-12-07 13:47:06] ======================================================================
+[2025-12-07 21:25:01] ======================================================================
+[2025-12-07 21:25:01] START EXECUTION
+[2025-12-07 21:25:01] ======================================================================
+[2025-12-07 21:25:01] ✅ Database connected successfully
+[2025-12-07 21:25:01] 🔍 Executing query...
+[2025-12-07 21:25:01] 📊 Total data found: 1
+[2025-12-07 21:25:01] 
+[2025-12-07 21:25:01] --- Processing Loan ID: 35 ---
+[2025-12-07 21:25:01] Member: Muhammad Syauqi Murtadlo
+[2025-12-07 21:25:01] Raw Phone: 6281233970793
+[2025-12-07 21:25:01] Item Code: P0005S
+[2025-12-07 21:25:01] 📱 Normalized Phone: 6281233970793
+[2025-12-07 21:25:01] 📤 Sending to WhatsApp API...
+[2025-12-07 21:25:06] HTTP Code: 200
+[2025-12-07 21:25:06] Response: {"status":true,"message":"Text Message is pending and waiting to be processed","data":{"device_id":"U6D48K","quota":666,"messages":[{"id":"931d41e6-ee2a-4301-aa43-a88b21f436b7","phone":"6281233970793","message":"*PERPUSTAKAAN UNWAHA*\n\nHalo *Muhammad Syauqi Murtadlo*,\nIni adalah pengingat bahwa buku yang Anda pinjam akan *jatuh tempo besok*.\n\n*Judul Buku*: Pemrograman Web dengan Laravel 10\n*Kode Buku*  : P0005S\n*Jatuh Tempo*: 2025-12-08\n\nMohon dikembalikan tepat waktu ya.\n\nTerima kasih.\n— *Pustakawan Unwaha*","status":"pending","ref_id":""}]}}
+[2025-12-07 21:25:06] ✅ SUCCESS: Message sent to 6281233970793
+[2025-12-07 21:25:06] 
+[2025-12-07 21:25:06] ======================================================================
+[2025-12-07 21:25:06] EXECUTION SUMMARY
+[2025-12-07 21:25:06] Total Records: 1
+[2025-12-07 21:25:06] ✅ Success: 1
+[2025-12-07 21:25:06] ❌ Failed: 0
+[2025-12-07 21:25:06] ⚠️  Skipped: 0
+[2025-12-07 21:25:06] END EXECUTION
+[2025-12-07 21:25:06] ======================================================================
