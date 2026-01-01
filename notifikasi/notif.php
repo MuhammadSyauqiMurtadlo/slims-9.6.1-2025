@@ -84,7 +84,7 @@ $sql = "
     b.title AS book_title
 FROM loan AS l
 INNER JOIN member AS m ON m.member_id = l.member_id
-INNER JOIN item AS i ON i.item_code = l.item_code
+IINER JOIN item AS i ON i.item_code = l.item_code
 INNER JOIN biblio AS b ON b.biblio_id = i.biblio_id
 WHERE DATE(l.due_date) = CURDATE() + INTERVAL 1 DAY
 AND l.is_return = 0
@@ -120,7 +120,7 @@ $skippedCount = 0;
 
 // Loop setiap data
 while ($row = mysqli_fetch_assoc($res)) {
-  $bookTitle = $row['book_title'];
+  $bookTitle = $row['book_title']; // Ambil judul buku dari query
   $nama = $row['member_name'];
   $phone = $row['member_phone'];
   $item = $row['item_code'];
@@ -167,7 +167,7 @@ while ($row = mysqli_fetch_assoc($res)) {
   $message  = "*PERPUSTAKAAN UNWAHA*\n\n";
   $message .= "Halo *$nama*,\n";
   $message .= "Ini adalah pengingat bahwa buku yang Anda pinjam akan *jatuh tempo besok*.\n\n";
-  $message .= "*Judul Buku*: $bookTitle\n";
+  $message .= "*Judul Buku*: $bookTitile\n";
   $message .= "*Kode Buku*  : $item\n";
   $message .= "*Jatuh Tempo*: $due\n\n";
   $message .= "Mohon dikembalikan tepat waktu ya.\n\n";
