@@ -47,7 +47,7 @@ if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
     <div class="container-fluid">
 
         <div id="alert-new-version" class="alert alert-info border-0 mt-3 hidden">
-            <strong>News!</strong> New version of SLiMS (<code id="new_version"></code>) available to <a class="notAJAX"
+            <strong>TERBARU!!!</strong> New version of SLiMS (<code id="new_version"></code>) available to <a class="notAJAX"
                                                                                                          target="_blank"
                                                                                                          href="https://github.com/slims/slims9_bulian/releases/latest">download</a>.
         </div>

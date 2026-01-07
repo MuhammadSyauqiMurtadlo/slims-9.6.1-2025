@@ -11,6 +11,7 @@
 // require SIMBIO. 'simbio_GUI/table/simbio_table.inc.php';
 // require SIMBIO. 'simbio_GUI/form_maker/simbio_form_table_AJAX.inc.php';
 // require LIB. 'module.inc.php';
+//! Cek session dan privileges
 
 // key to authenticate
 if (!defined('INDEX_AUTH')) {
@@ -66,6 +67,7 @@ require LIB.'module.inc.php';
     // Konten fitur kamu di sini
     echo '<div class="infoBox">';
     echo 'Halo! Ini fitur baru kamu';
+    echo '<br />Silakan kembangkan sesuai kebutuhan kamu.';
     echo '</div>';
     ?>
 </div>
