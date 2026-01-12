@@ -4,12 +4,33 @@
  * File: /admin/modules/wa_notification/index.php
  */
 
-require '../../../sysconfig.inc.php';
-require SB.'admin/default/session.inc.php';
+// key to authenticate
+if (!defined('INDEX_AUTH')) {
+  define('INDEX_AUTH', '1');
+}
+
+// key to get full database access
+define('DB_ACCESS', 'fa');
+
+if (!defined('SB')) {
+  // main system configuration
+  require '../../../sysconfig.inc.php';
+  // start the session
+  require SB.'admin/default/session.inc.php';
+}
+// IP based access limitation
+require LIB.'ip_based_access.inc.php';
+do_checkIP('smc');
+
 require SB.'admin/default/session_check.inc.php';
+require SIMBIO.'simbio_FILE/simbio_directory.inc.php';
+require SIMBIO.'simbio_GUI/form_maker/simbio_form_table_AJAX.inc.php';
+require SIMBIO.'simbio_GUI/table/simbio_table.inc.php';
+require SIMBIO.'simbio_DB/simbio_dbop.inc.php';
+require LIB.'module.inc.php';
 
 // Load notification service
-require 'lib/NotificationService.class.php';
+require '../wa_notification/lib/NotificationService.class.php';
 
 // Privilege check
 if ($_SESSION['uid'] != 1) {

@@ -16,7 +16,7 @@ if ($_SESSION['uid'] != 1) {
 }
 
 $page_title = 'Template Pesan WhatsApp';
-require SB.'admin/default/header.inc.php';
+// require SB.'admin/default/header.inc.php';
 
 // Handle form submission
 if (isset($_POST['saveData'])) {
@@ -188,5 +188,5 @@ $formMode = $itemID > 0 ? 'edit' : 'list';
 <?php endif; ?>
 
 <?php
-require SB.'admin/default/footer.inc.php';
+// require SB.'admin/default/footer.inc.php';
 ?>
