@@ -28,38 +28,14 @@ if (isset($_POST['saveSettings'])) {
     } elseif (empty($wablasToken)) {
         echo '<div class="errorBox">Token API tidak boleh kosong!</div>';
     } else {
-        // Use prepared statement with upsert so settings are created if they don't exist
-        $wablasApiUrl = $wablasApiUrl; // already trimmed
-        $wablasToken = $wablasToken;
-
-        $stmt = $dbs->prepare("INSERT INTO wa_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
-        if ($stmt) {
-            $key = 'wablas_api_url';
-            $value = $wablasApiUrl;
-            $stmt->bind_param('ss', $key, $value);
-            $stmt->execute();
-
-            $key = 'wablas_token';
-            $value = $wablasToken;
-            $stmt->bind_param('ss', $key, $value);
-            $stmt->execute();
-
-            $stmt->close();
-            echo '<div class="successBox">✓ Pengaturan berhasil disimpan!</div>';
-        } else {
-            // Fallback: try update, then insert if update affected 0 rows
-            $wablasApiUrlEsc = $dbs->escape_string($wablasApiUrl);
-            $wablasTokenEsc = $dbs->escape_string($wablasToken);
-            $dbs->query("UPDATE wa_settings SET setting_value = '{$wablasApiUrlEsc}' WHERE setting_key = 'wablas_api_url'");
-            if ($dbs->affected_rows == 0) {
-                $dbs->query("INSERT INTO wa_settings (setting_key, setting_value) VALUES ('wablas_api_url', '{$wablasApiUrlEsc}')");
-            }
-            $dbs->query("UPDATE wa_settings SET setting_value = '{$wablasTokenEsc}' WHERE setting_key = 'wablas_token'");
-            if ($dbs->affected_rows == 0) {
-                $dbs->query("INSERT INTO wa_settings (setting_key, setting_value) VALUES ('wablas_token', '{$wablasTokenEsc}')");
-            }
-            echo '<div class="successBox">✓ Pengaturan berhasil disimpan! (fallback)</div>';
-        }
+        $wablasApiUrl = $dbs->escape_string($wablasApiUrl);
+        $wablasToken = $dbs->escape_string($wablasToken);
+        
+        // Update settings
+        $dbs->query("UPDATE wa_settings SET setting_value = '{$wablasApiUrl}' WHERE setting_key = 'wablas_api_url'");
+        $dbs->query("UPDATE wa_settings SET setting_value = '{$wablasToken}' WHERE setting_key = 'wablas_token'");
+        
+        echo '<div class="successBox">✓ Pengaturan berhasil disimpan!</div>';
     }
 }
 
@@ -90,8 +66,11 @@ while ($row = $query->fetch_assoc()) {
             
             <div class="form-group" style="margin-top: 20px;">
                 <label><strong>Base URL API *</strong></label>
-                <input type="url" name="wablas_api_url" class="form-control" value="<?php echo htmlspecialchars($settings['wablas_api_url']); ?>" required placeholder="https://console.wablas.com/api">
-                <small class="text-muted">URL endpoint API Wablas (default: https://console.wablas.com/api)</small>
+                <input type="url" name="wablas_api_url" class="form-control" value="<?php echo htmlspecialchars($settings['wablas_api_url']); ?>" required placeholder="https://tegal.wablas.com/api">
+                <small class="text-muted">
+                    URL endpoint API Wablas.<br>
+                    Contoh: <code>https://tegal.wablas.com/api</code> atau <code>https://console.wablas.com/api</code>
+                </small>
             </div>
             
             <div class="form-group" style="margin-top: 20px;">
@@ -116,5 +95,5 @@ while ($row = $query->fetch_assoc()) {
 </div>
 
 <?php
-// require SB.'admin/default/footer.inc.php;
+// require SB.'admin/default/footer.inc.php';
 ?>
