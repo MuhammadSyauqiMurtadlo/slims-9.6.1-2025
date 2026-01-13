@@ -66,15 +66,40 @@ class WablasAPI {
 
     /**
      * Cek status device dan kuota
+     * Method ini mengambil info lengkap dari Wablas termasuk:
+     * - Status device (connected/disconnected)
+     * - Quota (sisa kuota pesan)
+     * - Expired date (tanggal expired langganan)
      * 
      * @return array Info device
      */
     public function getDeviceInfo() {
-        $url = $this->apiUrl . '/device';
+        $url = $this->apiUrl . '/device/info';
         
         $response = $this->sendRequest($url, [], 'GET');
         
-        return $response;
+        // Parse response untuk extract info penting
+        if ($response['success'] && isset($response['data'])) {
+            $data = $response['data'];
+            
+            return [
+                'success' => true,
+                'status' => isset($data['status']) ? $data['status'] : 'unknown',
+                'quota' => isset($data['quota']) ? $data['quota'] : 0,
+                'expired_date' => isset($data['expired']) ? $data['expired'] : null,
+                'device_name' => isset($data['device_name']) ? $data['device_name'] : 'Unknown',
+                'phone_number' => isset($data['phone']) ? $data['phone'] : null,
+                'raw_data' => $data
+            ];
+        }
+        
+        return [
+            'success' => false,
+            'message' => isset($response['message']) ? $response['message'] : 'Failed to get device info',
+            'status' => 'disconnected',
+            'quota' => 0,
+            'expired_date' => null
+        ];
     }
 
     /**
@@ -121,18 +146,21 @@ class WablasAPI {
     private function sendRequest($url, $data = [], $method = 'POST') {
         $ch = curl_init();
         
-        // Set options
-        curl_setopt($ch, CURLOPT_URL, $url);
+        // Set options (we will append token as query parameter when present)
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-        
-        // Set headers
-        $headers = [
-            'Authorization: ' . $this->token,
-            'Content-Type: application/json'
-        ];
+
+        // Set headers (no Authorization header; token will be sent as query param)
+        $headers = ['Content-Type: application/json'];
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        // Append token as query parameter if provided by settings
+        if (!empty($this->token)) {
+            $sep = (strpos($url, '?') === false) ? '?' : '&';
+            $url .= $sep . 'token=' . urlencode($this->token);
+        }
+        curl_setopt($ch, CURLOPT_URL, $url);
         
         // Set method dan data
         if ($method == 'POST') {
@@ -177,33 +205,60 @@ class WablasAPI {
     }
 
     /**
-     * Cek apakah token valid dan langganan aktif
+     * Cek apakah token valid dan mendapatkan status lengkap
      * 
-     * @return array Status
+     * @return array Status lengkap dari Wablas
      */
-    public function checkStatus() {
-        // Ambil expired date dari settings
-        $query = $this->db->query("SELECT setting_value FROM wa_settings 
-                                   WHERE setting_key = 'wablas_expired_date'");
-        $row = $query->fetch_assoc();
-        $expiredDate = $row['setting_value'];
-        
-        $today = date('Y-m-d');
-        $isExpired = ($today > $expiredDate);
-        
-        // Hitung sisa hari
-        $diff = strtotime($expiredDate) - strtotime($today);
-        $daysRemaining = floor($diff / (60 * 60 * 24));
-        
-        // Cek device info dari API
+    public function getFullStatus() {
         $deviceInfo = $this->getDeviceInfo();
         
+        if (!$deviceInfo['success']) {
+            return [
+                'success' => false,
+                'status' => 'disconnected',
+                'quota' => 0,
+                'expired_date' => null,
+                'is_expired' => true,
+                'days_remaining' => 0,
+                'message' => $deviceInfo['message']
+            ];
+        }
+        
+        // Parse expired date
+        $expiredDate = $deviceInfo['expired_date'];
+        $today = date('Y-m-d');
+        $isExpired = false;
+        $daysRemaining = 0;
+        
+        if ($expiredDate) {
+            // Convert format jika perlu (sesuaikan dengan format dari Wablas)
+            // Misalnya: "2025-12-31" atau "31-12-2025" atau timestamp
+            
+            // Jika format dd-mm-yyyy, convert ke yyyy-mm-dd
+            if (strpos($expiredDate, '-') !== false) {
+                $parts = explode('-', $expiredDate);
+                if (strlen($parts[0]) == 2) {
+                    // Format dd-mm-yyyy
+                    $expiredDate = $parts[2] . '-' . $parts[1] . '-' . $parts[0];
+                }
+            }
+            
+            $isExpired = ($today > $expiredDate);
+            
+            // Hitung sisa hari
+            $diff = strtotime($expiredDate) - strtotime($today);
+            $daysRemaining = floor($diff / (60 * 60 * 24));
+        }
+        
         return [
-            'is_expired' => $isExpired,
+            'success' => true,
+            'status' => $deviceInfo['status'],
+            'quota' => $deviceInfo['quota'],
             'expired_date' => $expiredDate,
+            'is_expired' => $isExpired,
             'days_remaining' => $daysRemaining,
-            'device_status' => $deviceInfo['success'] ? 'connected' : 'disconnected',
-            'device_info' => $deviceInfo
+            'device_name' => $deviceInfo['device_name'],
+            'phone_number' => $deviceInfo['phone_number']
         ];
     }
 }

@@ -7,6 +7,9 @@
  * dengan fitur filter, pagination, dan statistik.
  */
 
+// key to authenticate
+define('INDEX_AUTH', '1');
+
 require '../../../sysconfig.inc.php';
 require SB . 'admin/default/session.inc.php';
 require SB . 'admin/default/session_check.inc.php';
@@ -139,7 +142,7 @@ $statistics = getTodayStatistics($dbs);
 // ============================================================================
 // HEADER
 // ============================================================================
-require SB . 'admin/default/header.inc.php';
+// require SB . 'admin/default/header.inc.php';
 ?>
 
 <!-- ============================================================================ -->
@@ -156,7 +159,7 @@ require SB . 'admin/default/header.inc.php';
     </div>
 </div>
 
-<div id="mainContent">
+<!-- <div id="mainContent"> -->
     
     <!-- ======================================================================== -->
     <!-- FILTER FORM -->
@@ -367,7 +370,7 @@ require SB . 'admin/default/header.inc.php';
         <div id="detailContent">Loading...</div>
         <button onclick="closeDetail()" class="btn btn-default" style="margin-top: 15px;">Tutup</button>
     </div>
-</div>
+<!-- </div> -->
 
 <!-- ============================================================================ -->
 <!-- JAVASCRIPT -->
@@ -468,4 +471,6 @@ document.addEventListener('keydown', function(e) {
 });
 </script>
 
-<?php require SB . 'admin/default/footer.inc.php'; ?>
+<?php
+// require SB . 'admin/default/footer.inc.php';
+ ?>

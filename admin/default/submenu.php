@@ -26,7 +26,7 @@ $menu[] = array(__('Management Tools'), MWB . 'system/management_tools.php', __(
 
 // WhatsApp Notification submenu (converted from HTML to PHP menu entries)
 $menu[] = array('Header', __('WhatsApp Notification'));
-$menu[] = array(__('Dashboard'), MWB.'wa_notification/index.php', __('Dashboard'));
+$menu[] = array(__('Dashboard'), MWB.'wa_notification/dashboard.php', __('Dashboard'));
 $menu[] = array(__('Template Pesan'), MWB.'wa_notification/templates.php', __('Template Pesan'));
 $menu[] = array(__('Jadwal Notifikasi'), MWB.'wa_notification/schedules.php', __('Jadwal Notifikasi'));
 $menu[] = array(__('Log Pengiriman'), MWB.'wa_notification/logs.php', __('Log Pengiriman'));

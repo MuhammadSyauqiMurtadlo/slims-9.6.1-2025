@@ -3,7 +3,10 @@
  * Kelola Template Pesan WhatsApp
  * File: /admin/modules/wa_notification/templates.php
  */
+// key to authenticate
+define('INDEX_AUTH', '1');
 
+// required file
 require '../../../sysconfig.inc.php';
 require SB.'admin/default/session.inc.php';
 require SB.'admin/default/session_check.inc.php';
@@ -69,7 +72,7 @@ $formMode = $itemID > 0 ? 'edit' : 'list';
 
 <?php if ($formMode == 'list'): ?>
     <!-- List Templates -->
-    <div id="mainContent">
+    <!-- <div id="mainContent"> -->
         <table class="dataList">
             <thead>
                 <tr>
@@ -160,7 +163,7 @@ $formMode = $itemID > 0 ? 'edit' : 'list';
                 <a href="templates.php" class="btn btn-default">Batal</a>
             </div>
         </form>
-    </div>
+    <!-- </div> -->
     
     <script>
     // Generate preview

@@ -3,6 +3,8 @@
  * Kelola Jadwal Notifikasi
  * File: /admin/modules/wa_notification/schedules.php
  */
+// key to authenticate
+define('INDEX_AUTH', '1');
 
 require '../../../sysconfig.inc.php';
 require SB.'admin/default/session.inc.php';
@@ -61,7 +63,7 @@ $formMode = $itemID > 0 ? 'edit' : 'list';
 
 <?php if ($formMode == 'list'): ?>
     <!-- List Schedules -->
-    <div id="mainContent">
+    <!-- <div id="mainContent"> -->
         <!-- Cron Status -->
         <?php
         $query = $dbs->query("SELECT setting_value FROM wa_settings WHERE setting_key = 'cron_last_run'");
@@ -188,7 +190,7 @@ $formMode = $itemID > 0 ? 'edit' : 'list';
                 <a href="schedules.php" class="btn btn-default">Batal</a>
             </div>
         </form>
-    </div>
+    <!-- </div> -->
 
 <?php endif; ?>
 
