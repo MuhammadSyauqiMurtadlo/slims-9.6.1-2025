@@ -59,7 +59,7 @@ while ($row = $query->fetch_assoc()) {
     </div>
 </div>
 
-<div id="mainContent">
+<!-- <div id="mainContent"> -->
     <form method="POST" action="">
         <div class="infoBox">
             <h3>Konfigurasi Wablas API</h3>
@@ -92,7 +92,7 @@ while ($row = $query->fetch_assoc()) {
             </div>
         </div>
     </form>
-</div>
+<!-- </div> -->
 
 <?php
 // require SB.'admin/default/footer.inc.php';

@@ -35,7 +35,7 @@ $status = $wablas->getFullStatus();
     </div>
 </div>
 
-<div id="mainContent">
+<!-- <div id="mainContent"> -->
     <?php if (!$status['success']): ?>
         <!-- Error State -->
         <div class="errorBox">
@@ -188,7 +188,7 @@ $status = $wablas->getFullStatus();
         </pre>
     </div>
     <?php endif; ?>
-</div>
+<!-- </div> -->
 
 <?php
 // require SB.'admin/default/footer.inc.php';

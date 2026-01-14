@@ -501,7 +501,7 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
 
     // edit mode messagge
     if ($form->edit_mode) {
-        echo '<div class="per_title"><h2>'.__('Change User Profiles').'</h2></div>';
+        echo '<div class="per_title"><h2>'.__('Change User Profile').'</h2></div>';
         echo '<div class="infoBox row"><div class="col-6">'.__('You are going to edit user profile'),' : <b>'.$rec_d['realname'].'</b> <br />'.__('Last Update').'&nbsp;'.$rec_d['last_update'].'
         <div>'.__('Leave Password field blank if you don\'t want to change the password').'</div></div>';
         if ($rec_d['user_image']) {

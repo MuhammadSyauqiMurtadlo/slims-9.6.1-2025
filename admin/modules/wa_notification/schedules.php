@@ -16,17 +16,58 @@ if ($_SESSION['uid'] != 1) {
 }
 
 $page_title = 'Jadwal Notifikasi WhatsApp';
-// require SB.'admin/default/header.inc.php';
+$message = '';
 
-// Handle form submission
-if (isset($_POST['saveData'])) {
-    $scheduleId = (int)$_POST['schedule_id'];
+// Handle Add New Schedule
+if (isset($_POST['addSchedule'])) {
+    $notificationType = trim($_POST['notification_type']);
+    $daysBefore = (int)$_POST['days_before'];
     $sendTime = trim($_POST['send_time']);
     $isActive = isset($_POST['is_active']) ? 1 : 0;
     
-    if (empty($sendTime)) {
-        echo '<div class="errorBox">Waktu pengiriman tidak boleh kosong!</div>';
+    if (empty($notificationType) || empty($sendTime)) {
+        $message = '<div class="errorBox">Semua field harus diisi!</div>';
     } else {
+        $notificationType = $dbs->escape_string($notificationType);
+        $sendTime = $dbs->escape_string($sendTime);
+        
+        // Cek apakah notification type sudah ada
+        $check = $dbs->query("SELECT schedule_id FROM wa_schedules WHERE notification_type = '{$notificationType}'");
+        
+        if ($check->num_rows > 0) {
+            $message = '<div class="errorBox">Tipe notifikasi ini sudah ada!</div>';
+        } else {
+            $sql = "INSERT INTO wa_schedules 
+                    (notification_type, days_before, send_time, is_active, created_at) 
+                    VALUES 
+                    ('{$notificationType}', {$daysBefore}, '{$sendTime}', {$isActive}, NOW())";
+            
+            if ($dbs->query($sql)) {
+                $message = '<div class="successBox">✓ Jadwal berhasil ditambahkan!</div>';
+            } else {
+                $message = '<div class="errorBox">Gagal menambahkan jadwal: ' . $dbs->error . '</div>';
+            }
+        }
+    }
+}
+
+// Handle Update All Schedules
+if (isset($_POST['saveSchedules'])) {
+    $schedules = $_POST['schedules'];
+    
+    $allSuccess = true;
+    
+    foreach ($schedules as $scheduleId => $data) {
+        $scheduleId = (int)$scheduleId;
+        $sendTime = trim($data['send_time']);
+        $isActive = isset($data['is_active']) ? 1 : 0;
+        
+        if (empty($sendTime)) {
+            $message = '<div class="errorBox">Waktu pengiriman tidak boleh kosong!</div>';
+            $allSuccess = false;
+            break;
+        }
+        
         $sendTime = $dbs->escape_string($sendTime);
         
         $sql = "UPDATE wa_schedules SET 
@@ -35,165 +76,330 @@ if (isset($_POST['saveData'])) {
                 updated_at = NOW()
                 WHERE schedule_id = {$scheduleId}";
         
-        if ($dbs->query($sql)) {
-            echo '<div class="successBox">Jadwal berhasil diupdate!</div>';
-        } else {
-            echo '<div class="errorBox">Gagal update jadwal: ' . $dbs->error . '</div>';
+        if (!$dbs->query($sql)) {
+            $message = '<div class="errorBox">Gagal update jadwal: ' . $dbs->error . '</div>';
+            $allSuccess = false;
+            break;
         }
+    }
+    
+    if ($allSuccess) {
+        $message = '<div class="successBox">✓ Semua jadwal berhasil disimpan!</div>';
     }
 }
 
-// Handle form mode
-$itemID = isset($_GET['itemID']) ? (int)$_GET['itemID'] : 0;
-$formMode = $itemID > 0 ? 'edit' : 'list';
+// Handle Delete Schedule
+if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
+    $scheduleId = (int)$_GET['id'];
+    
+    if ($dbs->query("DELETE FROM wa_schedules WHERE schedule_id = {$scheduleId}")) {
+        $message = '<div class="successBox">✓ Jadwal berhasil dihapus!</div>';
+    } else {
+        $message = '<div class="errorBox">Gagal menghapus jadwal!</div>';
+    }
+}
+
+// Ambil semua jadwal
+$query = $dbs->query("SELECT * FROM wa_schedules ORDER BY days_before DESC");
+$schedules = [];
+while ($row = $query->fetch_assoc()) {
+    $schedules[] = $row;
+}
+
+// Cek status cron
+$cronQuery = $dbs->query("SELECT setting_value FROM wa_settings WHERE setting_key = 'cron_last_run'");
+$cronRow = $cronQuery->fetch_assoc();
+$lastRun = $cronRow['setting_value'];
 
 ?>
 
 <div class="menuBox">
     <div class="menuBoxInner whatsappIcon">
         <div class="per_title">
-            <h2><?php echo __('Jadwal Notifikasi WhatsApp'); ?></h2>
-        </div>
-        <div class="infoBox">
-            <p>Kelola jadwal pengiriman notifikasi otomatis. Sistem akan mengirim pesan sesuai waktu yang ditentukan.</p>
-            <p><strong>Catatan:</strong> Pastikan cron job sudah terpasang di server untuk menjalankan otomatis.</p>
+            <h2><?php echo $page_title; ?></h2>
         </div>
     </div>
 </div>
 
-<?php if ($formMode == 'list'): ?>
-    <!-- List Schedules -->
-    <!-- <div id="mainContent"> -->
-        <!-- Cron Status -->
-        <?php
-        $query = $dbs->query("SELECT setting_value FROM wa_settings WHERE setting_key = 'cron_last_run'");
-        $row = $query->fetch_assoc();
-        $lastRun = $row['setting_value'];
-        ?>
-        
-        <div class="infoBox">
-            <h4>Status Cron Job</h4>
-            <?php if (empty($lastRun)): ?>
-                <p style="color: orange;">⚠️ Cron job belum pernah dijalankan</p>
-            <?php else: ?>
-                <?php
-                $diff = time() - strtotime($lastRun);
-                $hours = floor($diff / 3600);
-                ?>
-                <p>Terakhir dijalankan: <strong><?php echo date('d-m-Y H:i:s', strtotime($lastRun)); ?></strong></p>
-                <?php if ($hours > 24): ?>
-                    <p style="color: red;">⚠️ Cron job tidak berjalan lebih dari 24 jam! Periksa konfigurasi cron.</p>
-                <?php endif; ?>
+<div class="contentDesc">
+    <?php echo $message; ?>
+    
+    <!-- Cron Status -->
+    <div class="infoBox <?php echo empty($lastRun) ? 'warning' : 'info'; ?>">
+        <strong>⏰ Status Cron Job:</strong><br>
+        <?php if (empty($lastRun)): ?>
+            <span style="color: orange;">⚠️ Cron job belum pernah dijalankan</span>
+        <?php else: ?>
+            <?php
+            $diff = time() - strtotime($lastRun);
+            $hours = floor($diff / 3600);
+            ?>
+            Terakhir dijalankan: <strong><?php echo date('d-m-Y H:i:s', strtotime($lastRun)); ?></strong>
+            <?php if ($hours > 24): ?>
+                <br><span style="color: red;">⚠️ Cron job tidak berjalan lebih dari 24 jam!</span>
             <?php endif; ?>
-        </div>
-        
-        <!-- Schedule Table -->
-        <table class="dataList">
+        <?php endif; ?>
+    </div>
+
+    <!-- Form Edit Semua Jadwal -->
+    <form method="POST" action="">
+        <table class="bordered" style="width:100%; border-collapse: collapse;">
             <thead>
-                <tr>
-                    <th width="5%">No</th>
+                <tr style="background: #f5f5f5;">
                     <th width="15%">Tipe Notifikasi</th>
-                    <th width="20%">Waktu Pengiriman</th>
-                    <th width="30%">Deskripsi</th>
+                    <th width="10%">Hari</th>
+                    <th width="15%">Waktu Kirim</th>
                     <th width="10%">Status</th>
-                    <th width="10%">Terakhir Update</th>
+                    <th width="20%">Terakhir Update</th>
                     <th width="10%">Aksi</th>
                 </tr>
             </thead>
             <tbody>
-                <?php
-                $query = $dbs->query("SELECT * FROM wa_schedules ORDER BY days_before DESC");
-                $no = 1;
-                
-                $descriptions = [
-                    'H-3' => '3 hari sebelum jatuh tempo',
-                    'H-2' => '2 hari sebelum jatuh tempo',
-                    'H-1' => '1 hari sebelum jatuh tempo',
-                    'H+0' => 'Hari jatuh tempo'
-                ];
-                
-                while ($row = $query->fetch_assoc()):
-                ?>
+                <?php if (empty($schedules)): ?>
                 <tr>
-                    <td><?php echo $no++; ?></td>
-                    <td><strong><?php echo $row['notification_type']; ?></strong></td>
-                    <td><?php echo date('H:i', strtotime($row['send_time'])); ?> WIB</td>
-                    <td><?php echo $descriptions[$row['notification_type']]; ?></td>
-                    <td>
-                        <?php if ($row['is_active']): ?>
-                            <span style="color: green;">✓ Aktif</span>
-                        <?php else: ?>
-                            <span style="color: red;">✗ Nonaktif</span>
-                        <?php endif; ?>
-                    </td>
-                    <td><?php echo date('d-m-Y H:i', strtotime($row['updated_at'])); ?></td>
-                    <td>
-                        <a href="?itemID=<?php echo $row['schedule_id']; ?>" class="btn btn-primary btn-sm">Edit</a>
+                    <td colspan="6" style="text-align: center; padding: 30px; color: #999;">
+                        Belum ada jadwal notifikasi
                     </td>
                 </tr>
-                <?php endwhile; ?>
+                <?php else: ?>
+                    <?php foreach ($schedules as $schedule): ?>
+                    <tr>
+                        <td style="padding: 12px;">
+                            <strong><?php echo htmlspecialchars($schedule['notification_type']); ?></strong>
+                        </td>
+                        <td style="padding: 12px;">
+                            <?php echo $schedule['days_before']; ?> hari
+                        </td>
+                        <td style="padding: 12px;">
+                            <input 
+                                type="time" 
+                                name="schedules[<?php echo $schedule['schedule_id']; ?>][send_time]" 
+                                value="<?php echo date('H:i', strtotime($schedule['send_time'])); ?>" 
+                                class="form-control"
+                                required
+                            >
+                        </td>
+                        <td style="padding: 12px;">
+                            <label>
+                                <input 
+                                    type="checkbox" 
+                                    name="schedules[<?php echo $schedule['schedule_id']; ?>][is_active]" 
+                                    value="1" 
+                                    <?php echo $schedule['is_active'] ? 'checked' : ''; ?>
+                                >
+                                <span style="color: <?php echo $schedule['is_active'] ? 'green' : 'red'; ?>;">
+                                    <?php echo $schedule['is_active'] ? '✓ Aktif' : '✗ Nonaktif'; ?>
+                                </span>
+                            </label>
+                        </td>
+                        <td style="padding: 12px;">
+                            <small><?php echo date('d-m-Y H:i', strtotime($schedule['updated_at'])); ?></small>
+                        </td>
+                        <td style="padding: 12px; text-align: center;">
+                            <a href="?action=delete&id=<?php echo $schedule['schedule_id']; ?>" 
+                               class="btn-delete" 
+                               onclick="return confirm('Yakin ingin menghapus jadwal ini?')">
+                                🗑️ Hapus
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
+            
+            <?php if (!empty($schedules)): ?>
+            <tfoot>
+                <tr>
+                    <td colspan="6" style="text-align:center; padding: 15px; background: #f9f9f9;">
+                        <button type="submit" name="saveSchedules" class="button primary">
+                            💾 Simpan Semua Jadwal
+                        </button>
+                    </td>
+                </tr>
+            </tfoot>
+            <?php endif; ?>
         </table>
-        
-        <!-- Cron Command Info -->
-        <div class="infoBox" style="margin-top: 20px;">
-            <h4>Perintah Cron Job</h4>
-            <p>Tambahkan perintah berikut ke crontab server:</p>
-            <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px;">0 8 * * * /usr/bin/php <?php echo __DIR__; ?>/cron.php >> <?php echo __DIR__; ?>/cron.log 2>&1</pre>
-            <p><small>Perintah di atas akan menjalankan cron setiap hari pukul 08:00 WIB</small></p>
-        </div>
-    </div>
-
-<?php else: ?>
-    <!-- Edit Schedule Form -->
-    <?php
-    $query = $dbs->query("SELECT * FROM wa_schedules WHERE schedule_id = {$itemID}");
-    $schedule = $query->fetch_assoc();
+    </form>
     
-    if (!$schedule) {
-        echo '<div class="errorBox">Jadwal tidak ditemukan!</div>';
-        exit;
-    }
-    ?>
-    
-    <div id="mainContent">
-        <a href="schedules.php" class="btn btn-default">« Kembali</a>
-        
-        <form method="POST" action="" style="margin-top: 20px;">
-            <input type="hidden" name="schedule_id" value="<?php echo $schedule['schedule_id']; ?>">
-            
-            <div class="form-group">
-                <label><strong>Tipe Notifikasi</strong></label>
-                <input type="text" class="form-control" value="<?php echo $schedule['notification_type']; ?>" disabled>
-            </div>
-            
-            <div class="form-group">
-                <label><strong>Hari Sebelum Jatuh Tempo</strong></label>
-                <input type="text" class="form-control" value="<?php echo $schedule['days_before']; ?> hari" disabled>
-            </div>
-            
-            <div class="form-group">
-                <label><strong>Waktu Pengiriman (WIB)</strong></label>
-                <input type="time" name="send_time" class="form-control" value="<?php echo date('H:i', strtotime($schedule['send_time'])); ?>" required>
-                <small class="text-muted">Notifikasi akan dikirim pada waktu ini setiap harinya</small>
-            </div>
-            
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" name="is_active" value="1" <?php echo $schedule['is_active'] ? 'checked' : ''; ?>>
-                    Aktifkan jadwal ini
-                </label>
-            </div>
-            
-            <div class="form-group">
-                <button type="submit" name="saveData" class="btn btn-primary">Simpan Jadwal</button>
-                <a href="schedules.php" class="btn btn-default">Batal</a>
-            </div>
+    <!-- Form Tambah Jadwal Baru -->
+    <div class="infoBox add-new" style="margin-top: 30px;">
+        <h3>➕ Tambah Jadwal Baru</h3>
+        <form method="POST" action="">
+            <table class="bordered" style="width:100%; margin-top: 10px;">
+                <tr>
+                    <td width="20%"><strong>Tipe Notifikasi *</strong></td>
+                    <td>
+                        <input type="text" name="notification_type" class="form-control" placeholder="Contoh: H-5, H-10, H+2" required>
+                        <small style="color: #666;">Format: H-X (sebelum) atau H+X (setelah jatuh tempo)</small>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Hari Sebelum/Sesudah *</strong></td>
+                    <td>
+                        <input type="number" name="days_before" class="form-control" placeholder="-5, -3, 0, 1, 2" required>
+                        <small style="color: #666;">Negatif = sebelum, 0 = hari H, Positif = setelah</small>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Waktu Pengiriman *</strong></td>
+                    <td>
+                        <input type="time" name="send_time" class="form-control" value="08:00" required>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Status</strong></td>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="is_active" value="1" checked>
+                            Aktifkan jadwal ini
+                        </label>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="text-align:center; padding: 15px;">
+                        <button type="submit" name="addSchedule" class="button success">
+                            ➕ Tambah Jadwal
+                        </button>
+                    </td>
+                </tr>
+            </table>
         </form>
-    <!-- </div> -->
+    </div>
+    
+    <!-- Cron Info -->
+    <div class="infoBox note">
+        <strong>📘 Perintah Cron Job:</strong>
+        <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; margin-top: 10px; overflow-x: auto;">0 8 * * * /usr/bin/php <?php echo __DIR__; ?>/cron.php >> <?php echo __DIR__; ?>/cron.log 2>&1</pre>
+        <p><small>Perintah di atas akan menjalankan cron setiap hari pukul 08:00 WIB</small></p>
+    </div>
+</div>
 
-<?php endif; ?>
+<style>
+.contentDesc table td {
+    padding: 12px;
+    border: 1px solid #ddd;
+}
 
-<?php
-// require SB.'admin/default/footer.inc.php';
-?>
+.successBox {
+    background-color: #e7f7e7;
+    border: 1px solid #b8e2b8;
+    color: #2b662b;
+    padding: 12px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+.errorBox {
+    background-color: #ffe7e7;
+    border: 1px solid #e2b8b8;
+    color: #662b2b;
+    padding: 12px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+.infoBox.info {
+    background-color: #e6f3ff;
+    border: 1px solid #b3d9ff;
+    color: #003d7a;
+    padding: 12px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+.infoBox.warning {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    color: #856404;
+    padding: 12px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+.infoBox.add-new {
+    background-color: #f0f8e6;
+    border: 1px solid #c3e6a0;
+    color: #2d5016;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.infoBox.note {
+    background-color: #f0f8ff;
+    border: 1px solid #b3d4fc;
+    color: #003366;
+    padding: 12px;
+    border-radius: 5px;
+    margin-top: 20px;
+    font-size: 13px;
+}
+
+.form-control {
+    box-sizing: border-box;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+}
+
+.button.primary {
+    background-color: #0078d7;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.button.primary:hover {
+    background-color: #005fa3;
+}
+
+.button.success {
+    background-color: #28a745;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.button.success:hover {
+    background-color: #218838;
+}
+
+.btn-delete {
+    color: #dc3545;
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.btn-delete:hover {
+    color: #a71d2a;
+    text-decoration: underline;
+}
+
+table.bordered {
+    border: 1px solid #ddd;
+}
+
+thead tr {
+    background: #f5f5f5;
+    font-weight: bold;
+}
+</style>
+
+<script>
+// Konfirmasi sebelum submit
+document.querySelector('form[method="POST"]').addEventListener('submit', function(e) {
+    if (e.submitter.name === 'saveSchedules') {
+        if (!confirm('Yakin ingin menyimpan semua perubahan jadwal?')) {
+            e.preventDefault();
+        }
+    }
+});
+</script>
