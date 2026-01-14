@@ -126,7 +126,7 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
               </div>';
         
         // Variables info box
-        echo '<div class="infoBox note" style="background-color: #f0f8ff; border: 1px solid #b3d4fc; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
+        echo '<div class="infoBox note" style="background-color: #030303; border: 1px solid #b3d4fc; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
                 <strong>📘 '.__('Available Variables').':</strong>
                 <ul style="margin: 10px 0;">
                     <li><code>{member_name}</code> → '.__('Member name').'</li>
@@ -142,11 +142,11 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
               </div>';
         
         // Live preview
-        echo '<div class="infoBox preview" style="background-color: #fff9e6; border: 1px solid #ffd966; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
-                <strong>👁️ '.__('Live Preview').':</strong>
-                <div id="livePreview" style="background: #f9f9f9; padding: 15px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; border: 1px solid #ddd; margin-top: 10px; min-height: 80px;">
-                </div>
-              </div>';
+        // echo '<div class="infoBox preview" style="background-color: #030303; border: 1px solid #ffd966; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
+        //         <strong>👁️ '.__('Live Preview').':</strong>
+        //         <div id="livePreview" style="background: #030303; padding: 15px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; border: 1px solid #ddd; margin-top: 10px; min-height: 80px;">
+        //         </div>
+        //       </div>';
     }
     
     // print out the form object
