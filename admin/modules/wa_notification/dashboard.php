@@ -45,7 +45,7 @@ $status = $wablas->getFullStatus();
         </div>
     <?php else: ?>
         <!-- Status Gateway -->
-        <div class="infoBox" style="<?php echo $status['is_expired'] ? 'background: #ffebee;' : 'background: #e8f5e9;'; ?>">
+        <div class="infoBox" style="<?php echo $status['is_expired'] ? 'background: #070707;' : 'background: #070707;'; ?>">
             <h3>Status WhatsApp Gateway</h3>
             <table class="dataList" style="margin-top: 15px;">
                 <tr>

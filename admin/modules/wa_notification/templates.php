@@ -86,6 +86,8 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
         $form->record_id = $itemID;
         // form record title
         $form->record_title = $rec_d['notification_type'];
+        // disable delete button in edit form
+        $form->delete_button = false;
         // submit button attribute
         $form->submit_button_attr = 'name="saveData" value="'.__('Update').'" class="btn btn-success"';
     }
@@ -201,10 +203,12 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
     $datagrid->table_header_attr = 'class="dataListHeader" style="font-weight: bold;"';
     
     // set delete proccess URL
-    $datagrid->chbox_form_URL = $_SERVER['PHP_SELF'];
+    // $datagrid->chbox_form_URL = $_SERVER['PHP_SELF'];
+    // $datagrid->chbox_form_URL = '';
 
     // put the result into variables
     $datagrid_result = $datagrid->createDataGrid($dbs, 'wa_templates', 20, ($can_read AND $can_write));
+    // $datagrid_result = $datagrid->createDataGrid($dbs, 'wa_templates', 20, false);
     
     // header
     echo '<div class="menuBox">
@@ -221,6 +225,56 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
           </div>';
     
     echo $datagrid_result;
+
+    // echo '<style>
+    // /* Hide checkbox column */
+    // #dataList th:first-child,
+    // #dataList td:first-child {
+    //     display: none !important;
+    // }
+    // /* Hide delete button and check all/uncheck all */
+    // input[name="itemAction"],
+    // input[value="Delete Selected Data"],
+    // .checkAll,
+    // .checkAllLink {
+    //     display: none !important;
+    // }
+    // </style>';
+    echo '<style>
+        /* Hide checkbox column */
+        #dataList th:first-child,
+        #dataList td:first-child {
+            display: none;
+        }
+        /* Hide all buttons in the action area above table */
+        .btn-group.check-all,
+        input[value="Check All"],
+        input[value="Uncheck All"],
+        button[value="Check All"],
+        button[value="Uncheck All"] {
+            display: none !important;
+        }
+        /* Hide delete button */
+        input[name="itemAction"],
+        input[value="Delete Selected Data"],
+        button[value="Delete Selected Data"] {
+            display: none !important;
+        }
+    </style>';
+    
+    // JavaScript to remove Check All and Uncheck All buttons
+    echo '<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Remove all buttons with "Check" in their value or text
+        const buttons = document.querySelectorAll("input[type=\'button\'], button");
+        buttons.forEach(function(btn) {
+            const value = btn.value || btn.textContent || "";
+            if (value.includes("Check All") || value.includes("Uncheck All") || value.includes("Delete Selected")) {
+                btn.remove();
+            }
+        });
+    });
+    </script>';
 }
 /* main content end */
 
