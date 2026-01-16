@@ -22,7 +22,7 @@ $menu[] = array('Header', __('SHORTCUT'));
 $menu['user-profile'] = array(__('Change User Profiles'), MWB.'system/app_user.php?changecurrent=true&action=detail', __('Change Current User Profiles and Password'));
 $menu[] = array(__('Shortcut Setting'), MWB.'system/shortcut.php', __('Shortcut Setting'));
 $menu[] = array(__('Theme'), MWB.'system/theme.php', __('Configure theme Preferences'));
-$menu[] = array(__('Management Tools'), MWB . 'system/management_tools.php', __('Various Management Tools'));
+// $menu[] = array(__('Management Tools'), MWB . 'system/management_tools.php', __('Various Management Tools'));
 
 // WhatsApp Notification submenu (converted from HTML to PHP menu entries)
 $menu[] = array('Header', __('WhatsApp Notification'));

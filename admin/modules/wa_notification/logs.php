@@ -217,19 +217,19 @@ $statistics = getTodayStatistics($dbs);
     <div style="display: flex; gap: 15px; margin-bottom: 20px;">
         
         <!-- Success Count -->
-        <div style="background: #e8f5e9; padding: 15px; border-radius: 5px; flex: 1;">
+        <div style="background: #050505; padding: 15px; border-radius: 5px; flex: 1;">
             <h3 style="margin: 0;"><?php echo number_format($statistics['success']); ?></h3>
             <p style="margin: 5px 0 0 0;">Berhasil Hari Ini</p>
         </div>
         
         <!-- Failed Count -->
-        <div style="background: #ffebee; padding: 15px; border-radius: 5px; flex: 1;">
+        <div style="background: #050505; padding: 15px; border-radius: 5px; flex: 1;">
             <h3 style="margin: 0;"><?php echo number_format($statistics['failed']); ?></h3>
             <p style="margin: 5px 0 0 0;">Gagal Hari Ini</p>
         </div>
         
         <!-- Total Count -->
-        <div style="background: #e3f2fd; padding: 15px; border-radius: 5px; flex: 1;">
+        <div style="background: #050505; padding: 15px; border-radius: 5px; flex: 1;">
             <h3 style="margin: 0;"><?php echo number_format($statistics['total']); ?></h3>
             <p style="margin: 5px 0 0 0;">Total Hari Ini</p>
         </div>
