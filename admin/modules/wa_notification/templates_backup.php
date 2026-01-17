@@ -1,6 +1,6 @@
 <?php
 /**
- * Kelola Template Pesan & Jadwal WhatsApp
+ * Kelola Template Pesan WhatsApp
  * File: /admin/modules/wa_notification/templates.php
  */
 
@@ -31,8 +31,7 @@ if (!($can_read AND $can_write)) {
 if (isset($_POST['saveData'])) {
     $templateId = (int)$_POST['updateRecordID'];
     $templateMessage = trim($_POST['templateMessage']);
-    // $sendTime = trim($_POST['sendTime']);
-    $isActive = $_POST['isActive'] === 'active' ? 1 : 0;
+    $isActive = isset($_POST['isActive']) ? 1 : 0;
     
     // check form validity
     if (empty($templateMessage)) {
@@ -40,13 +39,7 @@ if (isset($_POST['saveData'])) {
         exit();
     }
     
-    // if (empty($sendTime)) {
-    //     utility::jsToastr(__('Send Time'), __('Send time can\'t be empty'), 'error');
-    //     exit();
-    // }
-    
     $data['template_message'] = $dbs->escape_string($templateMessage);
-    // $data['send_time'] = $dbs->escape_string($sendTime);
     $data['is_active'] = $isActive;
     $data['updated_at'] = date('Y-m-d H:i:s');
     
@@ -60,7 +53,7 @@ if (isset($_POST['saveData'])) {
     if ($update) {
         // write log
         utility::writeLogs($dbs, 'staff', $_SESSION['uid'], 'system', $_SESSION['realname'].' update template ('.$templateId.')', 'WA Template', 'Update');
-        utility::jsToastr(__('Template Data'), __('Template & Schedule Successfully Updated'), 'success');
+        utility::jsToastr(__('Template Data'), __('Template Successfully Updated'), 'success');
         echo '<script type="text/javascript">parent.$(\'#mainContent\').simbioAJAX(\''.$_SERVER['PHP_SELF'].'\');</script>';
     } else {
         utility::jsToastr(__('Template Data'), __('Template FAILED to Update. Please Contact System Administrator')."\nDEBUG : ".$sql_op->error, 'error');
@@ -102,37 +95,29 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
     /* Form Element(s) */
     // notification type (readonly)
     $form->addAnything(__('Notification Type'), '<strong>'.$rec_d['notification_type'].'</strong>');
-    // Send time (readonly - info only)
-    $sendTimeText = '<strong>'.date('H:i', strtotime($rec_d['send_time'])).' WIB</strong>';
-    $form->addAnything(__('Send Time'), $sendTimeText);
     
-    // days before/after (readonly - info only)
-    $days = $rec_d['days_before'];
-    $daysText = '';
-    if ($days < 0) {
-        $daysText = '<span style="color: orange;">'.abs($days).' '.__('days before due date').'</span>';
-    } else if ($days == 0) {
-        $daysText = '<span style="color: blue; font-weight: bold;">'.__('Due date').'</span>';
-    } else {
-        $daysText = '<span style="color: red;">'.abs($days).' '.__('days after due date').'</span>';
-    }
-    $form->addAnything(__('Days Before/After'), $daysText);
-    
-    // send time (editable)
-    // $form->addTextField('time', 'sendTime', __('Send Time (WIB)').'*', isset($rec_d['send_time']) ? date('H:i', strtotime($rec_d['send_time'])) : '08:00', 'class="form-control" style="width: 200px;"');
+    // description
+    $descriptions = [
+        'H-3' => '3 hari sebelum jatuh tempo',
+        'H-2' => '2 hari sebelum jatuh tempo',
+        'H-1' => '1 hari sebelum jatuh tempo',
+        'H+0' => 'Hari jatuh tempo'
+    ];
+    $desc = isset($descriptions[$rec_d['notification_type']]) ? $descriptions[$rec_d['notification_type']] : '';
+    $form->addAnything(__('Description'), '<em style="color: #666;">'.$desc.'</em>');
     
     // template message
     $form->addTextField('textarea', 'templateMessage', __('Template Message').'*', $rec_d['template_message']??'', 'rows="10" class="form-control" style="font-family: monospace;"');
     
     // is active
-    $form->addSelectList('isActive', __('Status'), array('active' => __('Active'), 'inactive' => __('Inactive')), $rec_d['is_active'] ? 'active' : 'inactive', 'class="form-control"');
+    $form->addCheckBox('isActive', __('Status'), array(array('1', __('Active'))), $rec_d['is_active']?array('1'):array());
     
     // edit mode message
     if ($form->edit_mode) {
         echo '<div class="menuBox">
                 <div class="menuBoxInner whatsappIcon">
                     <div class="per_title">
-                        <h2>'.__('Edit Template & Schedule').'</h2>
+                        <h2>'.__('Edit Template Message').'</h2>
                     </div>
                 </div>
               </div>';
@@ -143,7 +128,7 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
               </div>';
         
         // Variables info box
-        echo '<div class="infoBox note" style="background-color: #f0f8ff; border: 1px solid #b3d4fc; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
+        echo '<div class="infoBox note" style="background-color: #030303; border: 1px solid #b3d4fc; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
                 <strong>📘 '.__('Available Variables').':</strong>
                 <ul style="margin: 10px 0;">
                     <li><code>{member_name}</code> → '.__('Member name').'</li>
@@ -159,11 +144,11 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
               </div>';
         
         // Live preview
-        echo '<div class="infoBox preview" style="background-color: #fff9e6; border: 1px solid #ffd966; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
-                <strong>👁️ '.__('Live Preview').':</strong>
-                <div id="livePreview" style="background: #f9f9f9; padding: 15px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; border: 1px solid #ddd; margin-top: 10px; min-height: 80px;">
-                </div>
-              </div>';
+        // echo '<div class="infoBox preview" style="background-color: #030303; border: 1px solid #ffd966; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
+        //         <strong>👁️ '.__('Live Preview').':</strong>
+        //         <div id="livePreview" style="background: #030303; padding: 15px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; border: 1px solid #ddd; margin-top: 10px; min-height: 80px;">
+        //         </div>
+        //       </div>';
     }
     
     // print out the form object
@@ -176,8 +161,6 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
         const previewDiv = document.getElementById("livePreview");
         
         function updatePreview() {
-            if (!previewDiv) return;
-            
             let template = textarea.value;
             
             // Sample data
@@ -192,88 +175,71 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
         }
         
         // Update on load
-        if (previewDiv) {
-            updatePreview();
-            
-            // Update on typing
-            textarea.addEventListener("input", updatePreview);
-        }
+        updatePreview();
+        
+        // Update on typing
+        textarea.addEventListener("input", updatePreview);
     });
     </script>';
     
 } else {
     /* TEMPLATE LIST */
     
-    // Cron status info (moved to top)
-    $cronQuery = $dbs->query("SELECT setting_value FROM wa_settings WHERE setting_key = 'cron_last_run'");
-    $cronRow = $cronQuery->fetch_assoc();
-    $lastRun = $cronRow['setting_value']??'';
-    
-    // header
-    echo '<div class="menuBox">
-            <div class="menuBoxInner whatsappIcon">
-                <div class="per_title">
-                    <h2>'.__('WhatsApp Templates & Schedules').'</h2>
-                </div>
-            </div>
-          </div>';
-    
-    // Cron status
-    if (empty($lastRun)) {
-        echo '<div class="infoBox" style="background-color: #fff3cd; border: 1px solid #ffc107; color: #856404;">
-                <strong>⏰ '.__('Cron Job Status').':</strong><br>
-                <span style="color: orange;">⚠️ '.__('Cron job has not been run yet').'</span>
-              </div>';
-    } else {
-        $diff = time() - strtotime($lastRun);
-        $hours = floor($diff / 3600);
-        
-        $alertStyle = $hours > 24 ? 'background-color: #ffebee; border: 1px solid #e2b8b8; color: #662b2b;' : 'background-color: #e6f3ff; border: 1px solid #b3d9ff; color: #003d7a;';
-        
-        echo '<div class="infoBox" style="'.$alertStyle.'">
-                <strong>⏰ '.__('Cron Job Status').':</strong><br>
-                '.__('Last run').': <strong>'.date('d-m-Y H:i:s', strtotime($lastRun)).'</strong>';
-        
-        if ($hours > 24) {
-            echo '<br><span style="color: red;">⚠️ '.__('Cron job has not been running for more than 24 hours!').'</span>';
-        }
-        
-        echo '</div>';
-    }
-    
-    // info box
-    echo '<div class="infoBox">
-            '.__('Manage WhatsApp notification message templates and schedules. Click').' <strong>'.__('Edit').'</strong> '.__('button to modify template content and send time').'
-          </div>';
-    
     // create datagrid
     $datagrid = new simbio_datagrid();
     $datagrid->setSQLColumn('template_id',
         'notification_type AS \''.__('Notification Type').'\'',
-        'days_before AS \''.__('Days Before/After').'\'',
-        'send_time AS \''.__('Send Time').'\'',
         'template_message AS \''.__('Template Message').'\'',
-        'COALESCE(is_active, 0) AS \''.__('Status').'\'',
+        'is_active AS \''.__('Status').'\'',
         'updated_at AS \''.__('Last Update').'\'');
     
-    // modify column content for better display
-    $datagrid->modifyColumnContent(2, 'callback{formatDays}');
-    $datagrid->modifyColumnContent(3, 'callback{formatTime}');
-    $datagrid->modifyColumnContent(4, 'callback{truncateMessage}');
-    $datagrid->modifyColumnContent(5, 'callback{changeActive}');
+    // modify column content for status
+    $datagrid->modifyColumnContent(3, 'callback{changeActive}');
     
     $datagrid->setSQLorder('FIELD(notification_type, \'H-3\', \'H-2\', \'H-1\', \'H+0\')');
 
     // set table and table header attributes
     $datagrid->table_attr = 'id="dataList" class="s-table table"';
     $datagrid->table_header_attr = 'class="dataListHeader" style="font-weight: bold;"';
+    
+    // set delete proccess URL
+    // $datagrid->chbox_form_URL = $_SERVER['PHP_SELF'];
+    // $datagrid->chbox_form_URL = '';
 
     // put the result into variables
     $datagrid_result = $datagrid->createDataGrid($dbs, 'wa_templates', 20, ($can_read AND $can_write));
+    // $datagrid_result = $datagrid->createDataGrid($dbs, 'wa_templates', 20, false);
+    
+    // header
+    echo '<div class="menuBox">
+            <div class="menuBoxInner whatsappIcon">
+                <div class="per_title">
+                    <h2>'.__('WhatsApp Notification Templates').'</h2>
+                </div>
+            </div>
+          </div>';
+    
+    // info box
+    echo '<div class="infoBox">
+            '.__('Manage WhatsApp notification message templates. Click').' <strong>'.__('Edit').'</strong> '.__('button to modify template content').'
+          </div>';
     
     echo $datagrid_result;
 
-    // Hide checkbox, check all, uncheck all, and delete button
+    // echo '<style>
+    // /* Hide checkbox column */
+    // #dataList th:first-child,
+    // #dataList td:first-child {
+    //     display: none !important;
+    // }
+    // /* Hide delete button and check all/uncheck all */
+    // input[name="itemAction"],
+    // input[value="Delete Selected Data"],
+    // .checkAll,
+    // .checkAllLink {
+    //     display: none !important;
+    // }
+    // </style>';
     echo '<style>
         /* Hide checkbox column */
         #dataList th:first-child,
@@ -309,13 +275,6 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
         });
     });
     </script>';
-    
-    // Cron info (moved to bottom)
-    echo '<div class="infoBox note" style="background-color: #f0f8ff; border: 1px solid #b3d4fc; padding: 12px; border-radius: 5px; margin-top: 20px;">
-            <strong>📘 '.__('Cron Job Command').':</strong>
-            <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; margin-top: 10px; overflow-x: auto;">0 8 * * * /usr/bin/php '.dirname(__FILE__).'/cron.php >> '.dirname(__FILE__).'/cron.log 2>&1</pre>
-            <p><small>'.__('The command above will run the cron every day at 08:00 WIB').'</small></p>
-          </div>';
 }
 /* main content end */
 
@@ -328,40 +287,5 @@ function changeActive($obj_db, $array_data, $col) {
     } else {
         return '<span style="color: red; font-weight: bold;">✗ '.__('Inactive').'</span>';
     }
-}
-
-/**
- * Callback function to format days
- */
-function formatDays($obj_db, $array_data, $col) {
-    $days = $array_data[$col];
-    if ($days < 0) {
-        return '<span style="color: orange;">'.abs($days).' '.__('days before').'</span>';
-    } else if ($days == 0) {
-        return '<span style="color: blue; font-weight: bold;">'.__('Due date').'</span>';
-    } else {
-        return '<span style="color: red;">'.abs($days).' '.__('days after').'</span>';
-    }
-}
-
-/**
- * Callback function to format time
- */
-function formatTime($obj_db, $array_data, $col) {
-    return '<strong>'.date('H:i', strtotime($array_data[$col])).' WIB</strong>';
-}
-
-/**
- * Callback function to truncate message
- */
-function truncateMessage($obj_db, $array_data, $col) {
-    $message = $array_data[$col];
-    $maxLength = 80;
-    
-    if (strlen($message) > $maxLength) {
-        return '<span style="font-size: 11px;">'.htmlspecialchars(substr($message, 0, $maxLength)).'...</span>';
-    }
-    
-    return '<span style="font-size: 11px;">'.htmlspecialchars($message).'</span>';
 }
 ?>

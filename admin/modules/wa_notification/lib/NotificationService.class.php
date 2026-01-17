@@ -97,16 +97,41 @@ class NotificationService {
      * 
      * @return array List of schedules
      */
-    private function getActiveSchedules() {
-        $schedules = [];
-        $query = $this->db->query("SELECT * FROM wa_schedules WHERE is_active = 1 ORDER BY days_before ASC");
+    // private function getActiveSchedules() {
+    //     $schedules = [];
+    //     $query = $this->db->query("SELECT * FROM wa_schedules WHERE is_active = 1 ORDER BY days_before ASC");
         
-        while ($row = $query->fetch_assoc()) {
-            $schedules[] = $row;
-        }
+    //     while ($row = $query->fetch_assoc()) {
+    //         $schedules[] = $row;
+    //     }
         
-        return $schedules;
+    //     return $schedules;
+    // }
+    /**
+ * Ambil jadwal notifikasi yang aktif
+ * 
+ * @return array List of schedules
+ */
+private function getActiveSchedules() {
+    $schedules = [];
+    
+    // UPDATED: Query dari wa_templates instead of wa_schedules
+    $query = $this->db->query("SELECT 
+                                template_id as schedule_id,
+                                notification_type,
+                                days_before,
+                                send_time,
+                                is_active
+                               FROM wa_templates 
+                               WHERE is_active = 1 
+                               ORDER BY days_before ASC");
+    
+    while ($row = $query->fetch_assoc()) {
+        $schedules[] = $row;
     }
+    
+    return $schedules;
+}
 
     /**
      * Ambil data peminjaman yang perlu dikirim notifikasi

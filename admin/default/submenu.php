@@ -28,7 +28,7 @@ $menu[] = array(__('Theme'), MWB.'system/theme.php', __('Configure theme Prefere
 $menu[] = array('Header', __('WhatsApp Notification'));
 $menu[] = array(__('Dashboard'), MWB.'wa_notification/dashboard.php', __('Dashboard'));
 $menu[] = array(__('Template Pesan'), MWB.'wa_notification/templates.php', __('Template Pesan'));
-$menu[] = array(__('Jadwal Notifikasi'), MWB.'wa_notification/schedules.php', __('Jadwal Notifikasi'));
+// $menu[] = array(__('Jadwal Notifikasi'), MWB.'wa_notification/schedules.php', __('Jadwal Notifikasi'));
 $menu[] = array(__('Log Pengiriman'), MWB.'wa_notification/logs.php', __('Log Pengiriman'));
 $menu[] = array(__('Pengaturan'), MWB.'wa_notification/settings.php', __('Pengaturan'));
 
