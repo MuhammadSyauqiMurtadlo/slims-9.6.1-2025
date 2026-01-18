@@ -50,7 +50,7 @@ mysqli_set_charset($db, 'utf8mb4');
 
 // API Wablas Configuration
 $wablas_url = "https://tegal.wablas.com/api/v2/send-message";
-$token = "YzUXeFJCCTcRtfxBnK3fO7Pr6ImdAzWlCOPufuc1gwjXQN9J1J21hze";
+$token = "UfB1dvWGrSwAv4V2cihc2tke72kdzQcJjewEDX8hRwfooyzzQ3fBraU";
 $secret_key = "CoIaeNLW";
 
 // Gabungkan token dan secret key dengan titik

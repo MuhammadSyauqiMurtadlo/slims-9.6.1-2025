@@ -21,14 +21,12 @@ class WablasAPI {
         $query = $this->db->query("SELECT setting_key, setting_value FROM wa_settings 
                                    WHERE setting_key IN ('wablas_api_url', 'wablas_token')");
         
-        if ($query) {
-            while ($row = $query->fetch_assoc()) {
-                if ($row['setting_key'] == 'wablas_api_url') {
-                    $this->apiUrl = rtrim($row['setting_value'], '/');
-                }
-                if ($row['setting_key'] == 'wablas_token') {
-                    $this->token = $row['setting_value'];
-                }
+        while ($row = $query->fetch_assoc()) {
+            if ($row['setting_key'] == 'wablas_api_url') {
+                $this->apiUrl = rtrim($row['setting_value'], '/');
+            }
+            if ($row['setting_key'] == 'wablas_token') {
+                $this->token = $row['setting_value'];
             }
         }
     }
@@ -51,7 +49,7 @@ class WablasAPI {
             ];
         }
 
-        // Endpoint Wablas - SESUAIKAN DENGAN DOCS WABLAS
+        // Endpoint Wablas
         $url = $this->apiUrl . '/send-message';
         
         // Payload
@@ -153,15 +151,17 @@ class WablasAPI {
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         
         // Set headers
         $headers = [
-            'Content-Type: application/json',
-            'Authorization: ' . $this->token
+            'Content-Type: application/json'
         ];
+        
+        // Untuk POST request, tambahkan Authorization header
+        if ($method == 'POST') {
+            $headers[] = 'Authorization: ' . $this->token;
+        }
         
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         
@@ -243,9 +243,9 @@ class WablasAPI {
         
         return [
             'success' => true,
-            'status' => $deviceInfo['status'],
-            'quota' => $deviceInfo['quota'],
-            'expired_date' => $expiredDate,
+            'status' => $deviceInfo['status'], // "connected" dari response
+            'quota' => $deviceInfo['quota'], // 839 dari response
+            'expired_date' => $expiredDate, // "2026-02-01" dari response
             'is_expired' => $isExpired,
             'days_remaining' => $daysRemaining,
             'name' => $deviceInfo['name'],
@@ -255,3 +255,4 @@ class WablasAPI {
         ];
     }
 }
+?>

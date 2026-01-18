@@ -4,7 +4,7 @@
  * File: /admin/modules/wa_notification/lib/NotificationService.class.php
  */
 
-require_once __DIR__ . '/WablasAPI.class.php';
+require_once 'WablasAPI.class.php';
 
 class NotificationService {
     private $db;
@@ -30,27 +30,23 @@ class NotificationService {
             'errors' => []
         ];
 
-        // 1. Cek status Wablas
-        $status = $this->wablas->getFullStatus();
-        if (!$status['success']) {
-            $result['errors'][] = 'Failed to connect to Wablas: ' . $status['message'];
+        // 1. Cek apakah notifikasi aktif
+        if (!$this->isNotificationEnabled()) {
+            $result['errors'][] = 'Notification is disabled in settings';
             return $result;
         }
-        
+
+        // 2. Cek status Wablas
+        $status = $this->wablas->checkStatus();
         if ($status['is_expired']) {
-            $result['errors'][] = 'Wablas subscription has expired on ' . $status['expired_date'];
+            $result['errors'][] = 'Wablas subscription has expired';
             return $result;
         }
 
-        // 2. Ambil semua jadwal aktif
+        // 3. Ambil semua jadwal aktif
         $schedules = $this->getActiveSchedules();
-        
-        if (empty($schedules)) {
-            $result['errors'][] = 'No active schedules found';
-            return $result;
-        }
 
-        // 3. Loop setiap jadwal
+        // 4. Loop setiap jadwal
         foreach ($schedules as $schedule) {
             $loans = $this->getLoansForNotification($schedule);
             
@@ -66,12 +62,6 @@ class NotificationService {
                 // Generate pesan
                 $message = $this->generateMessage($loan, $schedule['notification_type']);
                 
-                if (empty($message)) {
-                    $result['failed']++;
-                    $result['errors'][] = "Empty message for {$loan['member_name']} - template might be inactive";
-                    continue;
-                }
-                
                 // Kirim WhatsApp
                 $sendResult = $this->sendNotification($loan, $message, $schedule['notification_type']);
                 
@@ -84,10 +74,22 @@ class NotificationService {
             }
         }
 
-        // 4. Update last run
+        // 5. Update last run
         $this->updateLastRun();
 
         return $result;
+    }
+
+    /**
+     * Cek apakah notifikasi diaktifkan
+     * 
+     * @return bool
+     */
+    private function isNotificationEnabled() {
+        $query = $this->db->query("SELECT setting_value FROM wa_settings 
+                                   WHERE setting_key = 'notification_enabled'");
+        $row = $query->fetch_assoc();
+        return ($row['setting_value'] == '1');
     }
 
     /**
@@ -95,28 +97,41 @@ class NotificationService {
      * 
      * @return array List of schedules
      */
-    private function getActiveSchedules() {
-        $schedules = [];
+    // private function getActiveSchedules() {
+    //     $schedules = [];
+    //     $query = $this->db->query("SELECT * FROM wa_schedules WHERE is_active = 1 ORDER BY days_before ASC");
         
-        // Query dari wa_templates (sudah digabung dengan schedule)
-        $query = $this->db->query("SELECT 
-                                    template_id as schedule_id,
-                                    notification_type,
-                                    days_before,
-                                    send_time,
-                                    is_active
-                                   FROM wa_templates 
-                                   WHERE is_active = 1 
-                                   ORDER BY days_before DESC");
+    //     while ($row = $query->fetch_assoc()) {
+    //         $schedules[] = $row;
+    //     }
         
-        if ($query) {
-            while ($row = $query->fetch_assoc()) {
-                $schedules[] = $row;
-            }
-        }
-        
-        return $schedules;
+    //     return $schedules;
+    // }
+    /**
+ * Ambil jadwal notifikasi yang aktif
+ * 
+ * @return array List of schedules
+ */
+private function getActiveSchedules() {
+    $schedules = [];
+    
+    // UPDATED: Query dari wa_templates instead of wa_schedules
+    $query = $this->db->query("SELECT 
+                                template_id as schedule_id,
+                                notification_type,
+                                days_before,
+                                send_time,
+                                is_active
+                               FROM wa_templates 
+                               WHERE is_active = 1 
+                               ORDER BY days_before ASC");
+    
+    while ($row = $query->fetch_assoc()) {
+        $schedules[] = $row;
     }
+    
+    return $schedules;
+}
 
     /**
      * Ambil data peminjaman yang perlu dikirim notifikasi
@@ -126,27 +141,26 @@ class NotificationService {
      */
     private function getLoansForNotification($schedule) {
         $loans = [];
-        $daysBefore = (int)$schedule['days_before'];
+        $daysBefore = $schedule['days_before'];
         
         // Query dengan JOIN ke tabel member, item, dan biblio
-        // PENTING: DATE_ADD dengan INTERVAL negatif untuk "days before"
         $sql = "SELECT 
                     l.loan_id,
                     l.member_id,
                     l.item_code,
                     l.due_date,
                     m.member_name,
-                    m.member_phone,
+                    m.phone_num,
                     b.title as book_title
                 FROM loan l
                 INNER JOIN member m ON l.member_id = m.member_id
                 INNER JOIN item i ON l.item_code = i.item_code
                 INNER JOIN biblio b ON i.biblio_id = b.biblio_id
                 WHERE l.is_lent = 1
-                  AND l.is_return = 0
-                  AND DATE(l.due_date) = DATE_ADD(CURDATE(), INTERVAL {$daysBefore} DAY)
-                  AND m.member_phone IS NOT NULL
-                  AND m.member_phone != ''";
+                AND l.is_return = 0
+                AND DATE(l.due_date) = DATE_ADD(CURDATE(), INTERVAL {$daysBefore} DAY)
+                AND m.phone_num IS NOT NULL
+                AND m.phone_num != ''";
         
         $query = $this->db->query($sql);
         
@@ -176,7 +190,7 @@ class NotificationService {
                                    AND DATE(created_at) = CURDATE()
                                    LIMIT 1");
         
-        return ($query && $query->num_rows > 0);
+        return ($query->num_rows > 0);
     }
 
     /**
@@ -194,7 +208,7 @@ class NotificationService {
                                    AND is_active = 1 
                                    LIMIT 1");
         
-        if (!$query || $query->num_rows == 0) {
+        if ($query->num_rows == 0) {
             return '';
         }
         
@@ -227,14 +241,14 @@ class NotificationService {
      */
     private function sendNotification($loan, $message, $notificationType) {
         // Kirim via Wablas
-        $sendResult = $this->wablas->sendMessage($loan['member_phone'], $message);
+        $sendResult = $this->wablas->sendMessage($loan['phone_num'], $message);
         
         // Prepare log data
         $logData = [
             'loan_id' => $this->db->real_escape_string($loan['loan_id']),
             'member_id' => $this->db->real_escape_string($loan['member_id']),
             'member_name' => $this->db->real_escape_string($loan['member_name']),
-            'member_phone' => $this->db->real_escape_string($loan['member_phone']),
+            'member_phone' => $this->db->real_escape_string($loan['phone_num']),
             'book_title' => $this->db->real_escape_string($loan['book_title']),
             'item_code' => $this->db->real_escape_string($loan['item_code']),
             'due_date' => $loan['due_date'],
@@ -272,16 +286,56 @@ class NotificationService {
      */
     private function updateLastRun() {
         $now = date('Y-m-d H:i:s');
+        $this->db->query("UPDATE wa_settings SET setting_value = '{$now}' 
+                         WHERE setting_key = 'cron_last_run'");
+    }
+
+    /**
+     * Get dashboard statistics
+     * 
+     * @return array Stats
+     */
+    public function getDashboardStats() {
+        $stats = [];
         
-        // Cek apakah setting sudah ada
-        $check = $this->db->query("SELECT setting_key FROM wa_settings WHERE setting_key = 'cron_last_run'");
+        // Total pesan hari ini
+        $query = $this->db->query("SELECT COUNT(*) as total FROM wa_logs 
+                                   WHERE DATE(sent_at) = CURDATE()");
+        $row = $query->fetch_assoc();
+        $stats['today_total'] = $row['total'];
         
-        if ($check && $check->num_rows > 0) {
-            // Update
-            $this->db->query("UPDATE wa_settings SET setting_value = '{$now}' WHERE setting_key = 'cron_last_run'");
-        } else {
-            // Insert
-            $this->db->query("INSERT INTO wa_settings (setting_key, setting_value, setting_description) VALUES ('cron_last_run', '{$now}', 'Last cron execution time')");
-        }
+        // Success rate hari ini
+        $query = $this->db->query("SELECT COUNT(*) as total FROM wa_logs 
+                                   WHERE DATE(sent_at) = CURDATE() AND status = 'success'");
+        $row = $query->fetch_assoc();
+        $stats['today_success'] = $row['total'];
+        
+        // Failed hari ini
+        $stats['today_failed'] = $stats['today_total'] - $stats['today_success'];
+        
+        // Total pesan bulan ini
+        $query = $this->db->query("SELECT COUNT(*) as total FROM wa_logs 
+                                   WHERE MONTH(sent_at) = MONTH(CURDATE()) 
+                                   AND YEAR(sent_at) = YEAR(CURDATE())");
+        $row = $query->fetch_assoc();
+        $stats['month_total'] = $row['total'];
+        
+        // Pending notifications (loan yang akan jatuh tempo dalam 3 hari)
+        $query = $this->db->query("SELECT COUNT(*) as total FROM loan 
+                                   WHERE is_lent = 1 AND is_return = 0 
+                                   AND DATE(due_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)");
+        $row = $query->fetch_assoc();
+        $stats['pending_notifications'] = $row['total'];
+        
+        // Wablas status
+        $status = $this->wablas->checkStatus();
+        $stats['wablas_status'] = $status;
+        
+        // Device info (kuota)
+        $deviceInfo = $this->wablas->getDeviceInfo();
+        $stats['device_info'] = $deviceInfo;
+        
+        return $stats;
     }
 }
+?>
