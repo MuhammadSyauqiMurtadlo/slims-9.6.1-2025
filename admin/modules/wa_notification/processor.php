@@ -4,6 +4,9 @@
  * File: /admin/modules/wa_notification/processor.php
  */
 
+// key to authenticate
+define('INDEX_AUTH', '1');
+
 require '../../../sysconfig.inc.php';
 require SB.'admin/default/session.inc.php';
 require SB.'admin/default/session_check.inc.php';
@@ -11,8 +14,11 @@ require SB.'admin/default/session_check.inc.php';
 // Load services
 require 'lib/NotificationService.class.php';
 
-// Privilege check
-if ($_SESSION['uid'] != 1) {
+// privileges checking
+$can_read = utility::havePrivilege('system', 'r');
+$can_write = utility::havePrivilege('system', 'w');
+
+if (!($can_read AND $can_write)) {
     die(json_encode(['success' => false, 'message' => 'Unauthorized']));
 }
 
@@ -23,17 +29,24 @@ $action = isset($_GET['action']) ? $_GET['action'] : '';
 switch ($action) {
     case 'run_manual':
         // Jalankan notifikasi manual
-        $service = new NotificationService($dbs);
-        $result = $service->processNotifications();
-        
-        echo json_encode([
-            'success' => true,
-            'total_processed' => $result['total_processed'],
-            'success_count' => $result['success'],
-            'failed' => $result['failed'],
-            'skipped' => $result['skipped'],
-            'errors' => $result['errors']
-        ]);
+        try {
+            $service = new NotificationService($dbs);
+            $result = $service->processNotifications();
+            
+            echo json_encode([
+                'success' => true,
+                'total_processed' => $result['total_processed'],
+                'success_count' => $result['success'],
+                'failed' => $result['failed'],
+                'skipped' => $result['skipped'],
+                'errors' => $result['errors']
+            ]);
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
         break;
     
     case 'get_log_detail':
@@ -75,4 +88,3 @@ switch ($action) {
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
         break;
 }
-?>
