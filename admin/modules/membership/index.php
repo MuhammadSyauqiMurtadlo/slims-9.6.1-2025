@@ -97,10 +97,16 @@ if (isset($_POST['saveData']) AND $can_read AND $can_write) {
     $birthDate = trim($_POST['birthDate']);
     $mpasswd1 = trim($_POST['memberPasswd']);
     $mpasswd2 = trim($_POST['memberPasswd2']);
+    $memberPhone = trim($_POST['memberPhone']);
     if (empty($memberID) OR empty($memberName) OR empty($birthDate)) {
         toastr(__('Member ID, Name and Birthday cannot be empty'))->error(); //mfc
         exit();
-    } else if (($mpasswd1 OR $mpasswd2) AND ($mpasswd1 !== $mpasswd2)) {
+    }    
+    else if (empty($memberPhone)) {
+    toastr(__('Phone Number is required'))->error();
+    exit();
+}
+    else if (($mpasswd1 OR $mpasswd2) AND ($mpasswd1 !== $mpasswd2)) {
         toastr(__('Password confirmation does not match. See if your Caps Lock key is on!'))->error();
         exit();
     } else {
@@ -532,7 +538,7 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
     // member mail address
     $form->addTextField('textarea', 'memberMailAddress', __('Mail Address'), $rec_d['member_mail_address']??'', 'rows="2" class="form-control" style="width: 100%;"');
     // member phone
-    $form->addTextField('text', 'memberPhone', __('Phone Number'), $rec_d['member_phone']??'', 'class="form-control" style="width: 50%;"');
+    $form->addTextField('text', 'memberPhone', __('Phone Number'), $rec_d['member_phone']??'', 'class="form-control" style="width: 30%;"');
     // member fax
     $form->addTextField('text', 'memberFax', __('Fax Number'), $rec_d['member_fax']??'', 'class="form-control" style="width: 50%;"');
     // member pin
