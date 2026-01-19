@@ -177,7 +177,7 @@ while ($row = $query->fetch_assoc()) {
             </tr>
             
             <tr>
-                <td colspan="2" style="text-align:center; padding: 15px; background: #f8f9fa;">
+                <td colspan="2" style="text-align:center; padding: 15px; background: #070707;">
                     <button type="submit" name="saveSettings" class="btn btn-success">
                         💾 <?php echo __('Save Settings'); ?>
                     </button>
@@ -188,7 +188,7 @@ while ($row = $query->fetch_assoc()) {
 </form>
 
 <!-- Help Section -->
-<div class="infoBox note" style="background-color: #e7f3ff; border: 1px solid #b3d4fc; padding: 12px; border-radius: 5px; margin-top: 20px;">
+<div class="infoBox note" style="background-color: #070707; border: 1px solid #b3d4fc; padding: 12px; border-radius: 5px; margin-top: 20px;">
     <strong>📘 <?php echo __('How to Setup Wablas Token & Secret Key'); ?>:</strong>
     <ol style="margin: 10px 0;">
         <li><?php echo __('Login to Wablas dashboard at'); ?> <a href="https://console.wablas.com" target="_blank">https://console.wablas.com</a></li>
@@ -200,7 +200,7 @@ while ($row = $query->fetch_assoc()) {
         <li><?php echo __('Go back to Dashboard to verify connection'); ?></li>
     </ol>
     
-    <div style="background: #fff; padding: 10px; border-left: 3px solid #0078d7; margin-top: 10px;">
+    <!-- <div style="background: #070707; padding: 10px; border-left: 3px solid #0078d7; margin-top: 10px;">
         <strong>ℹ️ <?php echo __('Important'); ?>:</strong>
         <ul style="margin: 5px 0; padding-left: 20px;">
             <li><?php echo __('Token and Secret Key are two separate values from Wablas'); ?></li>
@@ -208,7 +208,7 @@ while ($row = $query->fetch_assoc()) {
             <li><?php echo __('Make sure both values are correct to avoid authentication errors'); ?></li>
             <li><?php echo __('If you get "Access denied" error, double-check both Token and Secret Key'); ?></li>
         </ul>
-    </div>
+    </div> -->
 </div>
 
 <style>

@@ -2,6 +2,12 @@
 /**
  * Kelola Template Pesan & Jadwal WhatsApp
  * File: /admin/modules/wa_notification/templates.php
+ * 
+ * DIPERBAIKI:
+ * - Keamanan SQL Injection
+ * - Validasi data lebih ketat
+ * - Kode lebih rapi dan efisien
+ * - Fixed encoding issue
  */
 
 // key to authenticate
@@ -29,37 +35,54 @@ if (!($can_read AND $can_write)) {
 
 /* RECORD OPERATION */
 if (isset($_POST['saveData'])) {
+    // Validasi dan sanitasi input
     $templateId = (int)$_POST['updateRecordID'];
     $templateMessage = trim($_POST['templateMessage']);
-    // $sendTime = trim($_POST['sendTime']);
-    $isActive = $_POST['isActive'] === 'active' ? 1 : 0;
+    $isActive = isset($_POST['isActive']) ? (int)$_POST['isActive'] : 0;
     
-    // check form validity
+    // Validasi ID harus lebih dari 0
+    if ($templateId <= 0) {
+        utility::jsToastr(__('Error'), __('Invalid template ID'), 'error');
+        exit();
+    }
+    
+    // Validasi pesan tidak boleh kosong
     if (empty($templateMessage)) {
         utility::jsToastr(__('Template Message'), __('Template message can\'t be empty'), 'error');
         exit();
     }
     
-    // if (empty($sendTime)) {
-    //     utility::jsToastr(__('Send Time'), __('Send time can\'t be empty'), 'error');
-    //     exit();
-    // }
+    // Validasi status harus 0 atau 1
+    if (!in_array($isActive, [0, 1])) {
+        utility::jsToastr(__('Status'), __('Invalid status value'), 'error');
+        exit();
+    }
     
-    $data['template_message'] = $dbs->escape_string($templateMessage);
-    // $data['send_time'] = $dbs->escape_string($sendTime);
-    $data['is_active'] = $isActive;
-    $data['updated_at'] = date('Y-m-d H:i:s');
+    // Cek apakah template dengan ID ini ada di database
+    $check_query = $dbs->query("SELECT template_id FROM wa_templates WHERE template_id = ".$templateId);
+    if ($check_query->num_rows == 0) {
+        utility::jsToastr(__('Error'), __('Template not found'), 'error');
+        exit();
+    }
     
-    // create sql op object
+    // Siapkan data untuk update
+    $data = array(
+        'template_message' => $dbs->escape_string($templateMessage),
+        'is_active' => $isActive,
+        'updated_at' => date('Y-m-d H:i:s')
+    );
+    
+    // Create sql operation object
     $sql_op = new simbio_dbop($dbs);
     
-    /* UPDATE RECORD MODE */
-    // update the data
+    // Update data ke database
     $update = $sql_op->update('wa_templates', $data, 'template_id='.$templateId);
     
     if ($update) {
-        // write log
-        utility::writeLogs($dbs, 'staff', $_SESSION['uid'], 'system', $_SESSION['realname'].' update template ('.$templateId.')', 'WA Template', 'Update');
+        // Tulis log aktivitas
+        utility::writeLogs($dbs, 'staff', $_SESSION['uid'], 'system', 
+            $_SESSION['realname'].' update template ('.$templateId.')', 'WA Template', 'Update');
+        
         utility::jsToastr(__('Template Data'), __('Template & Schedule Successfully Updated'), 'success');
         echo '<script type="text/javascript">parent.$(\'#mainContent\').simbioAJAX(\''.$_SERVER['PHP_SELF'].'\');</script>';
     } else {
@@ -69,46 +92,56 @@ if (isset($_POST['saveData'])) {
 }
 /* RECORD OPERATION END */
 
-/* main content */
+/* MAIN CONTENT */
 if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'detail')) {
-    /* RECORD FORM */
-    // try query
-    $itemID = (integer)isset($_POST['itemID'])?$_POST['itemID']:0;
+    /* RECORD FORM - EDIT TEMPLATE */
+    
+    // Ambil ID item yang akan diedit
+    $itemID = (int)(isset($_POST['itemID']) ? $_POST['itemID'] : 0);
+    
+    // Validasi ID
+    if ($itemID <= 0) {
+        echo '<div class="errorBox">'.__('Invalid template ID').'</div>';
+        exit();
+    }
+    
+    // Query data template dari database
     $rec_q = $dbs->query('SELECT * FROM wa_templates WHERE template_id='.$itemID);
+    
+    // Cek apakah data ditemukan
+    if ($rec_q->num_rows == 0) {
+        echo '<div class="errorBox">'.__('Template not found').'</div>';
+        exit();
+    }
+    
     $rec_d = $rec_q->fetch_assoc();
 
-    // create new instance
+    // Buat form object
     $form = new simbio_form_table_AJAX('mainForm', $_SERVER['PHP_SELF'].'?'.$_SERVER['QUERY_STRING'], 'post');
     $form->submit_button_attr = 'name="saveData" value="'.__('Update').'" class="btn btn-success"';
 
-    // form table attributes
+    // Form table attributes
     $form->table_attr = 'id="dataList" class="s-table table"';
     $form->table_header_attr = 'class="alterCell font-weight-bold"';
     $form->table_content_attr = 'class="alterCell2"';
 
-    // edit mode flag set
-    if ($rec_q->num_rows > 0) {
-        $form->edit_mode = true;
-        // form record id
-        $form->record_id = $itemID;
-        // form record title
-        $form->record_title = $rec_d['notification_type'];
-        // disable delete button in edit form
-        $form->delete_button = false;
-        // submit button attribute
-        $form->submit_button_attr = 'name="saveData" value="'.__('Update').'" class="btn btn-success"';
-    }
+    // Set edit mode
+    $form->edit_mode = true;
+    $form->record_id = $itemID;
+    $form->record_title = $rec_d['notification_type'];
+    $form->delete_button = false;
 
-    /* Form Element(s) */
-    // notification type (readonly)
+    /* FORM ELEMENTS */
+    
+    // 1. Notification Type (readonly)
     $form->addAnything(__('Notification Type'), '<strong>'.$rec_d['notification_type'].'</strong>');
-    // Send time (readonly - info only)
+    
+    // 2. Send Time (readonly)
     $sendTimeText = '<strong>'.date('H:i', strtotime($rec_d['send_time'])).' WIB</strong>';
     $form->addAnything(__('Send Time'), $sendTimeText);
     
-    // days before/after (readonly - info only)
-    $days = $rec_d['days_before'];
-    $daysText = '';
+    // 3. Days Before/After (readonly)
+    $days = (int)$rec_d['days_before'];
     if ($days < 0) {
         $daysText = '<span style="color: orange;">'.abs($days).' '.__('days before due date').'</span>';
     } else if ($days == 0) {
@@ -118,98 +151,75 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
     }
     $form->addAnything(__('Days Before/After'), $daysText);
     
-    // send time (editable)
-    // $form->addTextField('time', 'sendTime', __('Send Time (WIB)').'*', isset($rec_d['send_time']) ? date('H:i', strtotime($rec_d['send_time'])) : '08:00', 'class="form-control" style="width: 200px;"');
+    // 4. Template Message (editable)
+    $form->addTextField('textarea', 'templateMessage', __('Template Message').'*', 
+        $rec_d['template_message']??'', 
+        'rows="10" class="form-control" style="font-family: monospace;"');
     
-    // template message
-    $form->addTextField('textarea', 'templateMessage', __('Template Message').'*', $rec_d['template_message']??'', 'rows="10" class="form-control" style="font-family: monospace;"');
+    // 5. Status Active/Inactive (editable dengan radio button)
+    $currentStatus = isset($rec_d['is_active']) ? (int)$rec_d['is_active'] : 0;
+    $radioActive = $currentStatus == 1 ? 'checked' : '';
+    $radioInactive = $currentStatus == 0 ? 'checked' : '';
+
+    $statusRadio = '
+    <div class="form-check">
+        <label class="form-check-label">
+            <input type="radio" class="form-check-input" name="isActive" value="1" '.$radioActive.'>
+            <span style="color: green; font-weight: bold;">&#x2714; '.__('Active').'</span>
+        </label>
+    </div>
+    <div class="form-check">
+        <label class="form-check-label">
+            <input type="radio" class="form-check-input" name="isActive" value="0" '.$radioInactive.'>
+            <span style="color: red; font-weight: bold;">&#x2716; '.__('Inactive').'</span>
+        </label>
+    </div>';
+
+    $form->addAnything(__('Status').'*', $statusRadio);
     
-    // is active
-    $form->addSelectList('isActive', __('Status'), array('active' => __('Active'), 'inactive' => __('Inactive')), $rec_d['is_active'] ? 'active' : 'inactive', 'class="form-control"');
-    
-    // edit mode message
-    if ($form->edit_mode) {
-        echo '<div class="menuBox">
-                <div class="menuBoxInner whatsappIcon">
-                    <div class="per_title">
-                        <h2>'.__('Edit Template & Schedule').'</h2>
-                    </div>
+    // Header halaman edit
+    echo '<div class="menuBox">
+            <div class="menuBoxInner whatsappIcon">
+                <div class="per_title">
+                    <h2>'.__('Edit Template & Schedule').'</h2>
                 </div>
-              </div>';
-        
-        echo '<div class="infoBox">
-                '.__('You are going to edit template').' : <b>'.$rec_d['notification_type'].'</b><br/>
-                '.__('Last Update').' '.$rec_d['updated_at'].'
-              </div>';
-        
-        // Variables info box
-        echo '<div class="infoBox note" style="background-color: #f0f8ff; border: 1px solid #b3d4fc; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
-                <strong>📘 '.__('Available Variables').':</strong>
-                <ul style="margin: 10px 0;">
-                    <li><code>{member_name}</code> → '.__('Member name').'</li>
-                    <li><code>{member_id}</code> → '.__('Member ID').'</li>
-                    <li><code>{book_title}</code> → '.__('Book title').'</li>
-                    <li><code>{item_code}</code> → '.__('Item code').'</li>
-                    <li><code>{due_date}</code> → '.__('Due date').'</li>
-                </ul>
-                <p><em>'.__('Example').':</em><br>
-                Halo {member_name}, buku {book_title} akan jatuh tempo pada {due_date}<br>
-                → '.__('becomes').' → <strong>Halo John Doe, buku Introduction to Database akan jatuh tempo pada 15-01-2026</strong>
-                </p>
-              </div>';
-        
-        // Live preview
-        echo '<div class="infoBox preview" style="background-color: #fff9e6; border: 1px solid #ffd966; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
-                <strong>👁️ '.__('Live Preview').':</strong>
-                <div id="livePreview" style="background: #f9f9f9; padding: 15px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; border: 1px solid #ddd; margin-top: 10px; min-height: 80px;">
-                </div>
-              </div>';
-    }
+            </div>
+          </div>';
     
-    // print out the form object
+    // Info box
+    echo '<div class="infoBox">
+            '.__('You are going to edit template').' : <b>'.$rec_d['notification_type'].'</b><br/>
+            '.__('Last Update').' '.$rec_d['updated_at'].'
+          </div>';
+    
+    // Panduan variabel yang bisa digunakan
+    echo '<div class="infoBox note" style="background-color: #f0f8ff; border: 1px solid #b3d4fc; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
+            <strong>&#x1F4D8; '.__('Available Variables').':</strong>
+            <ul style="margin: 10px 0;">
+                <li><code>{member_name}</code> &rarr; '.__('Member name').'</li>
+                <li><code>{member_id}</code> &rarr; '.__('Member ID').'</li>
+                <li><code>{book_title}</code> &rarr; '.__('Book title').'</li>
+                <li><code>{item_code}</code> &rarr; '.__('Item code').'</li>
+                <li><code>{due_date}</code> &rarr; '.__('Due date').'</li>
+            </ul>
+            <p><em>'.__('Example').':</em><br>
+            Halo {member_name}, buku {book_title} akan jatuh tempo pada {due_date}<br>
+            &rarr; '.__('becomes').' &rarr; <strong>Halo John Doe, buku Introduction to Database akan jatuh tempo pada 15-01-2026</strong>
+            </p>
+          </div>';
+    
+    // Tampilkan form
     echo $form->printOut();
     
-    // JavaScript for live preview
-    echo '<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const textarea = document.querySelector("textarea[name=\"templateMessage\"]");
-        const previewDiv = document.getElementById("livePreview");
-        
-        function updatePreview() {
-            if (!previewDiv) return;
-            
-            let template = textarea.value;
-            
-            // Sample data
-            let preview = template
-                .replace(/{member_name}/g, "John Doe")
-                .replace(/{member_id}/g, "M2023001")
-                .replace(/{book_title}/g, "Introduction to Database Systems")
-                .replace(/{item_code}/g, "B001234")
-                .replace(/{due_date}/g, "15-01-2026");
-            
-            previewDiv.textContent = preview;
-        }
-        
-        // Update on load
-        if (previewDiv) {
-            updatePreview();
-            
-            // Update on typing
-            textarea.addEventListener("input", updatePreview);
-        }
-    });
-    </script>';
-    
 } else {
-    /* TEMPLATE LIST */
+    /* TEMPLATE LIST - DAFTAR TEMPLATE */
     
-    // Cron status info (moved to top)
+    // Cek status cron job
     $cronQuery = $dbs->query("SELECT setting_value FROM wa_settings WHERE setting_key = 'cron_last_run'");
     $cronRow = $cronQuery->fetch_assoc();
-    $lastRun = $cronRow['setting_value']??'';
+    $lastRun = $cronRow['setting_value'] ?? '';
     
-    // header
+    // Header halaman
     echo '<div class="menuBox">
             <div class="menuBoxInner whatsappIcon">
                 <div class="per_title">
@@ -218,35 +228,37 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
             </div>
           </div>';
     
-    // Cron status
+    // Status cron job
     if (empty($lastRun)) {
         echo '<div class="infoBox" style="background-color: #fff3cd; border: 1px solid #ffc107; color: #856404;">
-                <strong>⏰ '.__('Cron Job Status').':</strong><br>
-                <span style="color: orange;">⚠️ '.__('Cron job has not been run yet').'</span>
+                <strong>&#x23F0; '.__('Cron Job Status').':</strong><br>
+                <span style="color: orange;">&#x26A0; '.__('Cron job has not been run yet').'</span>
               </div>';
     } else {
         $diff = time() - strtotime($lastRun);
         $hours = floor($diff / 3600);
         
-        $alertStyle = $hours > 24 ? 'background-color: #ffebee; border: 1px solid #e2b8b8; color: #662b2b;' : 'background-color: #e6f3ff; border: 1px solid #b3d9ff; color: #003d7a;';
+        $alertStyle = $hours > 24 
+            ? 'background-color: #ffebee; border: 1px solid #e2b8b8; color: #662b2b;' 
+            : 'background-color: #e6f3ff; border: 1px solid #b3d9ff; color: #003d7a;';
         
         echo '<div class="infoBox" style="'.$alertStyle.'">
-                <strong>⏰ '.__('Cron Job Status').':</strong><br>
+                <strong>&#x23F0; '.__('Cron Job Status').':</strong><br>
                 '.__('Last run').': <strong>'.date('d-m-Y H:i:s', strtotime($lastRun)).'</strong>';
         
         if ($hours > 24) {
-            echo '<br><span style="color: red;">⚠️ '.__('Cron job has not been running for more than 24 hours!').'</span>';
+            echo '<br><span style="color: red;">&#x26A0; '.__('Cron job has not been running for more than 24 hours!').'</span>';
         }
         
         echo '</div>';
     }
     
-    // info box
+    // Info box
     echo '<div class="infoBox">
             '.__('Manage WhatsApp notification message templates and schedules. Click').' <strong>'.__('Edit').'</strong> '.__('button to modify template content and send time').'
           </div>';
     
-    // create datagrid
+    // Buat tabel data
     $datagrid = new simbio_datagrid();
     $datagrid->setSQLColumn('template_id',
         'notification_type AS \''.__('Notification Type').'\'',
@@ -256,39 +268,36 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
         'COALESCE(is_active, 0) AS \''.__('Status').'\'',
         'updated_at AS \''.__('Last Update').'\'');
     
-    // modify column content for better display
+    // Format kolom agar lebih bagus
     $datagrid->modifyColumnContent(2, 'callback{formatDays}');
     $datagrid->modifyColumnContent(3, 'callback{formatTime}');
     $datagrid->modifyColumnContent(4, 'callback{truncateMessage}');
     $datagrid->modifyColumnContent(5, 'callback{changeActive}');
     
+    // Urutkan berdasarkan notification type
     $datagrid->setSQLorder('FIELD(notification_type, \'H-3\', \'H-2\', \'H-1\', \'H+0\')');
 
-    // set table and table header attributes
+    // Set atribut tabel
     $datagrid->table_attr = 'id="dataList" class="s-table table"';
     $datagrid->table_header_attr = 'class="dataListHeader" style="font-weight: bold;"';
 
-    // put the result into variables
+    // Tampilkan tabel
     $datagrid_result = $datagrid->createDataGrid($dbs, 'wa_templates', 20, ($can_read AND $can_write));
-    
     echo $datagrid_result;
 
-    // Hide checkbox, check all, uncheck all, and delete button
+    // CSS untuk menyembunyikan checkbox dan tombol delete
     echo '<style>
-        /* Hide checkbox column */
+        /* Sembunyikan kolom checkbox */
         #dataList th:first-child,
         #dataList td:first-child {
             display: none;
         }
-        /* Hide all buttons in the action area above table */
+        /* Sembunyikan tombol Check All dan Uncheck All */
         .btn-group.check-all,
         input[value="Check All"],
         input[value="Uncheck All"],
         button[value="Check All"],
-        button[value="Uncheck All"] {
-            display: none !important;
-        }
-        /* Hide delete button */
+        button[value="Uncheck All"],
         input[name="itemAction"],
         input[value="Delete Selected Data"],
         button[value="Delete Selected Data"] {
@@ -296,10 +305,9 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
         }
     </style>';
     
-    // JavaScript to remove Check All and Uncheck All buttons
+    // JavaScript untuk hapus tombol yang tidak perlu
     echo '<script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Remove all buttons with "Check" in their value or text
         const buttons = document.querySelectorAll("input[type=\'button\'], button");
         buttons.forEach(function(btn) {
             const value = btn.value || btn.textContent || "";
@@ -310,31 +318,34 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
     });
     </script>';
     
-    // Cron info (moved to bottom)
+    // Info perintah cron job
     echo '<div class="infoBox note" style="background-color: #f0f8ff; border: 1px solid #b3d4fc; padding: 12px; border-radius: 5px; margin-top: 20px;">
-            <strong>📘 '.__('Cron Job Command').':</strong>
-            <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; margin-top: 10px; overflow-x: auto;">0 8 * * * /usr/bin/php '.dirname(__FILE__).'/cron.php >> '.dirname(__FILE__).'/cron.log 2>&1</pre>
+            <strong>&#x1F4D8; '.__('Cron Job Command').':</strong>
+            <pre style="background: #2d2d2d; color: #f8f8f2; padding: 10px; border-radius: 5px; margin-top: 10px; overflow-x: auto;">0 8 * * * /usr/bin/php '.dirname(__FILE__).'/cron.php >> '.dirname(__FILE__).'/cron.log 2>&1</pre>
             <p><small>'.__('The command above will run the cron every day at 08:00 WIB').'</small></p>
           </div>';
 }
-/* main content end */
+/* MAIN CONTENT END */
 
 /**
- * Callback function to change active status display
+ * Fungsi untuk menampilkan status Active/Inactive
  */
 function changeActive($obj_db, $array_data, $col) {
-    if ($array_data[$col] == 1) {
-        return '<span style="color: green; font-weight: bold;">✓ '.__('Active').'</span>';
+    $status = isset($array_data[$col]) ? (int)$array_data[$col] : 0;
+    
+    if ($status == 1) {
+        return '<span style="color: green; font-weight: bold;">&#x2714; '.__('Active').'</span>';
     } else {
-        return '<span style="color: red; font-weight: bold;">✗ '.__('Inactive').'</span>';
+        return '<span style="color: red; font-weight: bold;">&#x2716; '.__('Inactive').'</span>';
     }
 }
 
 /**
- * Callback function to format days
+ * Fungsi untuk format tampilan hari
  */
 function formatDays($obj_db, $array_data, $col) {
-    $days = $array_data[$col];
+    $days = (int)$array_data[$col];
+    
     if ($days < 0) {
         return '<span style="color: orange;">'.abs($days).' '.__('days before').'</span>';
     } else if ($days == 0) {
@@ -345,14 +356,14 @@ function formatDays($obj_db, $array_data, $col) {
 }
 
 /**
- * Callback function to format time
+ * Fungsi untuk format waktu
  */
 function formatTime($obj_db, $array_data, $col) {
     return '<strong>'.date('H:i', strtotime($array_data[$col])).' WIB</strong>';
 }
 
 /**
- * Callback function to truncate message
+ * Fungsi untuk memotong pesan yang terlalu panjang
  */
 function truncateMessage($obj_db, $array_data, $col) {
     $message = $array_data[$col];
