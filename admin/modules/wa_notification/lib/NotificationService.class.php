@@ -2,6 +2,8 @@
 /**
  * Class untuk logic pengiriman notifikasi
  * File: /admin/modules/wa_notification/lib/NotificationService.class.php
+ * 
+ * FIXED VERSION - Skip hanya untuk status SUCCESS
  */
 
 require_once __DIR__ . '/WablasAPI.class.php';
@@ -31,53 +33,66 @@ class NotificationService {
         ];
 
         // 1. Cek status Wablas
+        echo "Checking Wablas status...\n";
         $status = $this->wablas->getFullStatus();
         if (!$status['success']) {
             $result['errors'][] = 'Failed to connect to Wablas: ' . $status['message'];
             return $result;
         }
-        
+    
         if ($status['is_expired']) {
             $result['errors'][] = 'Wablas subscription has expired on ' . $status['expired_date'];
             return $result;
         }
+        echo "Wablas status: OK (Quota: {$status['quota']})\n";
 
         // 2. Ambil semua jadwal aktif
+        echo "Getting active schedules...\n";
         $schedules = $this->getActiveSchedules();
         
         if (empty($schedules)) {
             $result['errors'][] = 'No active schedules found';
             return $result;
         }
+        echo "Found " . count($schedules) . " active schedules\n";
 
         // 3. Loop setiap jadwal
         foreach ($schedules as $schedule) {
+            echo "\n[SCHEDULE] " . $schedule['notification_type'] . " (days_before: " . $schedule['days_before'] . ")\n";
             $loans = $this->getLoansForNotification($schedule);
+            echo "Found " . count($loans) . " loan(s)\n";
             
             foreach ($loans as $loan) {
+                echo "  → Processing: {$loan['member_name']} (loan_id: {$loan['loan_id']})\n";
                 $result['total_processed']++;
                 
-                // Cek apakah sudah pernah dikirim hari ini
-                if ($this->isAlreadySent($loan['loan_id'], $schedule['notification_type'])) {
-                    $result['skipped']++;
-                    continue;
-                }
+                //! 🔥 FIX: Cek apakah sudah SUKSES dikirim hari ini
+                // if ($this->isAlreadySentSuccessfully($loan['loan_id'], $schedule['notification_type'])) {
+                //     echo "    ✓ Already sent successfully today, skipping...\n";
+                //     $result['skipped']++;
+                //     continue;
+                // }
                 
                 // Generate pesan
                 $message = $this->generateMessage($loan, $schedule['notification_type']);
                 
                 if (empty($message)) {
+                    echo "    ✗ Failed: Empty message (template inactive?)\n";
                     $result['failed']++;
-                    $result['errors'][] = "Empty message for {$loan['member_name']} - template might be inactive";
+                    $result['errors'][] = "Empty message for {$loan['member_name']} (loan_id: {$loan['loan_id']})";
                     continue;
                 }
+                
+                echo "    Sending to: {$loan['member_phone']}\n";
                 
                 // Kirim WhatsApp
                 $sendResult = $this->sendNotification($loan, $message, $schedule['notification_type']);
                 
                 if ($sendResult['success']) {
+                    echo "    ✓ SUCCESS\n";
                     $result['success']++;
                 } else {
+                    echo "    ✗ FAILED: {$sendResult['error']}\n";
                     $result['failed']++;
                     $result['errors'][] = "Failed to send to {$loan['member_name']}: {$sendResult['error']}";
                 }
@@ -98,7 +113,6 @@ class NotificationService {
     private function getActiveSchedules() {
         $schedules = [];
         
-        // Query dari wa_templates (sudah digabung dengan schedule)
         $query = $this->db->query("SELECT 
                                     template_id as schedule_id,
                                     notification_type,
@@ -128,8 +142,12 @@ class NotificationService {
         $loans = [];
         $daysBefore = (int)$schedule['days_before'];
         
-        // Query dengan JOIN ke tabel member, item, dan biblio
-        // PENTING: DATE_ADD dengan INTERVAL negatif untuk "days before"
+        // Konversi days_before ke interval yang benar
+        // H-3: days_before = -3 → check due_date 3 hari dari sekarang
+        // H-1: days_before = -1 → check due_date 1 hari dari sekarang (besok)
+        // H+0: days_before = 0 → check due_date hari ini
+        $intervalDays = abs($daysBefore);
+        
         $sql = "SELECT 
                     l.loan_id,
                     l.member_id,
@@ -144,7 +162,7 @@ class NotificationService {
                 INNER JOIN biblio b ON i.biblio_id = b.biblio_id
                 WHERE l.is_lent = 1
                   AND l.is_return = 0
-                  AND DATE(l.due_date) = DATE_ADD(CURDATE(), INTERVAL {$daysBefore} DAY)
+                  AND DATE(l.due_date) = DATE_ADD(CURDATE(), INTERVAL {$intervalDays} DAY)
                   AND m.member_phone IS NOT NULL
                   AND m.member_phone != ''";
         
@@ -160,19 +178,22 @@ class NotificationService {
     }
 
     /**
-     * Cek apakah notifikasi sudah pernah dikirim hari ini
+     * 🔥 FIX: Cek apakah notifikasi sudah SUKSES dikirim hari ini
+     * Hanya skip jika status = 'success', bukan 'failed'
      * 
      * @param string $loanId Loan ID
      * @param string $notificationType Notification type
      * @return bool
      */
-    private function isAlreadySent($loanId, $notificationType) {
+    private function isAlreadySentSuccessfully($loanId, $notificationType) {
         $loanId = $this->db->real_escape_string($loanId);
         $notificationType = $this->db->real_escape_string($notificationType);
         
+        // 🔥 TAMBAHKAN kondisi status = 'success'
         $query = $this->db->query("SELECT log_id FROM wa_logs 
                                    WHERE loan_id = '{$loanId}' 
                                    AND notification_type = '{$notificationType}'
+                                   AND status = 'success'
                                    AND DATE(created_at) = CURDATE()
                                    LIMIT 1");
         
@@ -187,7 +208,6 @@ class NotificationService {
      * @return string Generated message
      */
     private function generateMessage($loan, $notificationType) {
-        // Ambil template
         $notificationType = $this->db->real_escape_string($notificationType);
         $query = $this->db->query("SELECT template_message FROM wa_templates 
                                    WHERE notification_type = '{$notificationType}' 
@@ -273,14 +293,11 @@ class NotificationService {
     private function updateLastRun() {
         $now = date('Y-m-d H:i:s');
         
-        // Cek apakah setting sudah ada
         $check = $this->db->query("SELECT setting_key FROM wa_settings WHERE setting_key = 'cron_last_run'");
         
         if ($check && $check->num_rows > 0) {
-            // Update
             $this->db->query("UPDATE wa_settings SET setting_value = '{$now}' WHERE setting_key = 'cron_last_run'");
         } else {
-            // Insert
             $this->db->query("INSERT INTO wa_settings (setting_key, setting_value, setting_description) VALUES ('cron_last_run', '{$now}', 'Last cron execution time')");
         }
     }

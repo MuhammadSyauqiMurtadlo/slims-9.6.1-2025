@@ -2,6 +2,8 @@
 /**
  * Pengaturan WhatsApp Notification
  * File: /admin/modules/wa_notification/settings.php
+ * 
+ * UPDATED: Tambah field Secret Key
  */
 
 // key to authenticate
@@ -30,6 +32,7 @@ $message = '';
 if (isset($_POST['saveSettings'])) {
     $wablasApiUrl = trim($_POST['wablas_api_url']);
     $wablasToken = trim($_POST['wablas_token']);
+    $wablasSecretKey = trim($_POST['wablas_secret_key']); // 🔥 TAMBAHAN: Secret Key
     
     // Validation
     if (empty($wablasApiUrl)) {
@@ -38,9 +41,14 @@ if (isset($_POST['saveSettings'])) {
     } elseif (empty($wablasToken)) {
         utility::jsToastr(__('Settings'), __('API Token cannot be empty!'), 'error');
         exit();
+    } elseif (empty($wablasSecretKey)) {
+        // 🔥 TAMBAHAN: Validasi Secret Key
+        utility::jsToastr(__('Settings'), __('Secret Key cannot be empty!'), 'error');
+        exit();
     } else {
         $wablasApiUrl = $dbs->escape_string($wablasApiUrl);
         $wablasToken = $dbs->escape_string($wablasToken);
+        $wablasSecretKey = $dbs->escape_string($wablasSecretKey); // 🔥 TAMBAHAN
         
         // create sql op object
         $sql_op = new simbio_dbop($dbs);
@@ -53,7 +61,25 @@ if (isset($_POST['saveSettings'])) {
         $data_token = array('setting_value' => $wablasToken);
         $update_token = $sql_op->update('wa_settings', $data_token, "setting_key='wablas_token'");
         
-        if ($update_url && $update_token) {
+        // 🔥 TAMBAHAN: Update Secret Key
+        // Cek apakah setting secret key sudah ada
+        $check_secret = $dbs->query("SELECT setting_key FROM wa_settings WHERE setting_key='wablas_secret_key'");
+        
+        if ($check_secret && $check_secret->num_rows > 0) {
+            // Update jika sudah ada
+            $data_secret = array('setting_value' => $wablasSecretKey);
+            $update_secret = $sql_op->update('wa_settings', $data_secret, "setting_key='wablas_secret_key'");
+        } else {
+            // Insert jika belum ada
+            $data_secret = array(
+                'setting_key' => 'wablas_secret_key',
+                'setting_value' => $wablasSecretKey,
+                'setting_description' => 'Wablas Secret Key untuk autentikasi'
+            );
+            $update_secret = $sql_op->insert('wa_settings', $data_secret);
+        }
+        
+        if ($update_url && $update_token && $update_secret) {
             // write log
             utility::writeLogs($dbs, 'staff', $_SESSION['uid'], 'system', $_SESSION['realname'].' update WhatsApp notification settings', 'WA Settings', 'Update');
             utility::jsToastr(__('Settings'), __('Settings successfully saved!'), 'success');
@@ -65,9 +91,9 @@ if (isset($_POST['saveSettings'])) {
     exit();
 }
 
-// Get current settings
+// 🔥 UPDATED: Get current settings (termasuk secret key)
 $settings = array();
-$query = $dbs->query("SELECT setting_key, setting_value FROM wa_settings WHERE setting_key IN ('wablas_api_url', 'wablas_token')");
+$query = $dbs->query("SELECT setting_key, setting_value FROM wa_settings WHERE setting_key IN ('wablas_api_url', 'wablas_token', 'wablas_secret_key')");
 while ($row = $query->fetch_assoc()) {
     $settings[$row['setting_key']] = $row['setting_value'];
 }
@@ -83,7 +109,7 @@ while ($row = $query->fetch_assoc()) {
 </div>
 
 <div class="infoBox">
-    <p><?php echo __('Configure connection to Wablas API. Token can be obtained from'); ?> <a href="https://console.wablas.com" target="_blank"><?php echo __('Wablas Dashboard'); ?></a>.</p>
+    <p><?php echo __('Configure connection to Wablas API. Token and Secret Key can be obtained from'); ?> <a href="https://console.wablas.com" target="_blank"><?php echo __('Wablas Dashboard'); ?></a>.</p>
 </div>
 
 <form method="POST" action="<?php echo $_SERVER['PHP_SELF']; ?>" target="blindSubmit">
@@ -123,20 +149,38 @@ while ($row = $query->fetch_assoc()) {
                            placeholder="<?php echo __('Enter token from Wablas dashboard'); ?>"
                            style="width: 100%;">
                     <small style="color: #666;">
-                        <?php echo __('API token can be obtained from Wablas dashboard'); ?>. 
-                        <a href="https://console.wablas.com" target="_blank"><?php echo __('Login to Wablas'); ?> →</a>
+                        <?php echo __('API token from Wablas dashboard'); ?>. 
+                        <?php echo __('Example'); ?>: <code>UfB1dvWGrSwAv4V2cihc2tk...</code>
+                    </small>
+                </td>
+            </tr>
+            
+            <!-- 🔥 TAMBAHAN: Field Secret Key -->
+            <tr>
+                <td style="padding: 12px; vertical-align: top;">
+                    <strong><?php echo __('Secret Key'); ?> *</strong>
+                </td>
+                <td style="padding: 12px;">
+                    <input type="text" 
+                           name="wablas_secret_key" 
+                           class="form-control" 
+                           value="<?php echo htmlspecialchars($settings['wablas_secret_key']??''); ?>" 
+                           required 
+                           placeholder="<?php echo __('Enter secret key from Wablas dashboard'); ?>"
+                           style="width: 100%;">
+                    <small style="color: #666;">
+                        <?php echo __('Secret key for additional authentication'); ?>. 
+                        <?php echo __('Example'); ?>: <code>CoIaeNLW</code><br>
+                        <strong><?php echo __('Note'); ?>:</strong> <?php echo __('The system will combine Token and Secret Key automatically'); ?> (<code>TOKEN.SECRET_KEY</code>)
                     </small>
                 </td>
             </tr>
             
             <tr>
-                <td colspan="2" style="text-align:center; padding: 15px; background: #070707;">
+                <td colspan="2" style="text-align:center; padding: 15px; background: #f8f9fa;">
                     <button type="submit" name="saveSettings" class="btn btn-success">
                         💾 <?php echo __('Save Settings'); ?>
                     </button>
-                    <!-- <a href="index.php" class="btn btn-default">
-                        ← <?php echo __('Back to Dashboard'); ?>
-                    </a> -->
                 </td>
             </tr>
         </table>
@@ -144,16 +188,27 @@ while ($row = $query->fetch_assoc()) {
 </form>
 
 <!-- Help Section -->
-<div class="infoBox note" style="background-color: #080808; border: 1px solid #b3d4fc; padding: 12px; border-radius: 5px; margin-top: 20px;">
-    <strong>📘 <?php echo __('How to Setup Wablas Token'); ?>:</strong>
+<div class="infoBox note" style="background-color: #e7f3ff; border: 1px solid #b3d4fc; padding: 12px; border-radius: 5px; margin-top: 20px;">
+    <strong>📘 <?php echo __('How to Setup Wablas Token & Secret Key'); ?>:</strong>
     <ol style="margin: 10px 0;">
         <li><?php echo __('Login to Wablas dashboard at'); ?> <a href="https://console.wablas.com" target="_blank">https://console.wablas.com</a></li>
         <li><?php echo __('Select active device'); ?></li>
-        <li><?php echo __('Copy the displayed API token'); ?></li>
-        <li><?php echo __('Paste the token in the form above'); ?></li>
+        <li><?php echo __('Find and copy the API Token'); ?> (<?php echo __('usually a long alphanumeric string'); ?>)</li>
+        <li><?php echo __('Find and copy the Secret Key'); ?> (<?php echo __('usually a shorter alphanumeric string'); ?>)</li>
+        <li><?php echo __('Paste both Token and Secret Key in the form above'); ?></li>
         <li><?php echo __('Click'); ?> "<?php echo __('Save Settings'); ?>"</li>
         <li><?php echo __('Go back to Dashboard to verify connection'); ?></li>
     </ol>
+    
+    <div style="background: #fff; padding: 10px; border-left: 3px solid #0078d7; margin-top: 10px;">
+        <strong>ℹ️ <?php echo __('Important'); ?>:</strong>
+        <ul style="margin: 5px 0; padding-left: 20px;">
+            <li><?php echo __('Token and Secret Key are two separate values from Wablas'); ?></li>
+            <li><?php echo __('The system will automatically combine them in format'); ?>: <code>TOKEN.SECRET_KEY</code></li>
+            <li><?php echo __('Make sure both values are correct to avoid authentication errors'); ?></li>
+            <li><?php echo __('If you get "Access denied" error, double-check both Token and Secret Key'); ?></li>
+        </ul>
+    </div>
 </div>
 
 <style>
@@ -210,10 +265,11 @@ while ($row = $query->fetch_assoc()) {
 }
 
 .infoBox.note code {
-    background: #eef3f8;
+    background: #f1f3f5;
     padding: 2px 5px;
     border-radius: 3px;
     font-family: monospace;
+    color: #c7254e;
 }
 
 table.bordered {

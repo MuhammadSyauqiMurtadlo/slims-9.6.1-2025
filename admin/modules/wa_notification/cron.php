@@ -6,6 +6,8 @@
  * Jalankan cron job:
  * 0 8 * * * /usr/bin/php /path/to/slims/admin/modules/wa_notification/cron.php >> /path/to/slims/admin/modules/wa_notification/cron.log 2>&1
  */
+define('INDEX_AUTH', true);
+define('DB_ACCESS', true);
 
 // Pastikan dijalankan dari CLI
 if (php_sapi_name() !== 'cli') {

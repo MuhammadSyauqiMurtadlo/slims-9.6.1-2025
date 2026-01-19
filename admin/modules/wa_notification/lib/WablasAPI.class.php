@@ -2,12 +2,16 @@
 /**
  * Class untuk integrasi dengan Wablas API
  * File: /admin/modules/wa_notification/lib/WablasAPI.class.php
+ * 
+ * FIXED VERSION - Proper authentication untuk berbeda endpoint
  */
 
 class WablasAPI {
     private $apiUrl;
     private $token;
+    private $secretKey;
     private $db;
+    private $debug = true; // Enable debug mode
 
     public function __construct($dbs) {
         $this->db = $dbs;
@@ -15,11 +19,11 @@ class WablasAPI {
     }
 
     /**
-     * Load settings dari database
+     * Load settings dari database (termasuk secret key)
      */
     private function loadSettings() {
         $query = $this->db->query("SELECT setting_key, setting_value FROM wa_settings 
-                                   WHERE setting_key IN ('wablas_api_url', 'wablas_token')");
+                                   WHERE setting_key IN ('wablas_api_url', 'wablas_token', 'wablas_secret_key')");
         
         if ($query) {
             while ($row = $query->fetch_assoc()) {
@@ -29,12 +33,29 @@ class WablasAPI {
                 if ($row['setting_key'] == 'wablas_token') {
                     $this->token = $row['setting_value'];
                 }
+                if ($row['setting_key'] == 'wablas_secret_key') {
+                    $this->secretKey = $row['setting_value'];
+                }
             }
         }
     }
 
     /**
+     * Generate auth token dengan format TOKEN.SECRET_KEY
+     * Untuk endpoint yang butuh autentikasi penuh (send-message)
+     * 
+     * @return string Auth token
+     */
+    private function getAuthToken() {
+        if (!empty($this->secretKey)) {
+            return $this->token . '.' . $this->secretKey;
+        }
+        return $this->token;
+    }
+
+    /**
      * Kirim pesan WhatsApp
+     * Menggunakan endpoint /v2/send-message dengan Authorization header
      * 
      * @param string $phone Nomor WhatsApp (format: 628xxx)
      * @param string $message Isi pesan
@@ -47,11 +68,18 @@ class WablasAPI {
         if (!$phone) {
             return [
                 'success' => false,
-                'message' => 'Invalid phone number'
+                'message' => 'Invalid phone number format'
             ];
         }
 
-        // Endpoint Wablas - SESUAIKAN DENGAN DOCS WABLAS
+        if ($this->debug) {
+            echo "    [DEBUG] Sending message...\n";
+            echo "    [DEBUG] API URL: {$this->apiUrl}\n";
+            echo "    [DEBUG] Phone: {$phone}\n";
+            echo "    [DEBUG] Message length: " . strlen($message) . " chars\n";
+        }
+
+        // Endpoint untuk send message
         $url = $this->apiUrl . '/send-message';
         
         // Payload
@@ -60,23 +88,64 @@ class WablasAPI {
             'message' => $message
         ];
 
-        // Kirim request
-        $response = $this->sendRequest($url, $data);
+        // 🔥 Kirim dengan Authorization header (TOKEN.SECRET_KEY)
+        $response = $this->sendRequest($url, $data, 'POST', true); // true = use auth token
         
-        return $response;
+        // Parse response
+        if (!$response['success']) {
+            return [
+                'success' => false,
+                'message' => $response['message'] ?? 'Unknown error',
+                'http_code' => $response['http_code'] ?? 0,
+                'raw_response' => $response['raw_response'] ?? null
+            ];
+        }
+
+        $wablasData = $response['data'];
+        
+        if ($this->debug) {
+            echo "    [DEBUG] Wablas Response: " . json_encode($wablasData) . "\n";
+        }
+
+        // Response Wablas format:
+        // Success: {"status": true, "data": {"id": "...", ...}}
+        // Failed: {"status": false, "message": "error message"}
+        
+        if (isset($wablasData['status']) && $wablasData['status'] === true) {
+            return [
+                'success' => true,
+                'message' => 'Message sent successfully',
+                'data' => $wablasData['data'] ?? $wablasData
+            ];
+        } else {
+            $errorMsg = $wablasData['message'] ?? 'Unknown Wablas error';
+            return [
+                'success' => false,
+                'message' => 'Wablas Error: ' . $errorMsg,
+                'data' => $wablasData
+            ];
+        }
     }
 
     /**
-     * Cek status device dan kuota
-     * Mengambil info dari endpoint /device/info
+     * 🔥 FIX: Cek status device dan kuota
+     * Menggunakan endpoint /device/info dengan query parameter token ONLY
+     * TIDAK menggunakan secret key di sini!
      * 
      * @return array Info device
      */
     public function getDeviceInfo() {
-        // Endpoint Wablas untuk device info
+        // 🔥 FIX: Gunakan TOKEN SAJA (tanpa secret key)
+        // Endpoint device/info hanya butuh token murni di query parameter
         $url = $this->apiUrl . '/device/info?token=' . $this->token;
         
-        $response = $this->sendRequest($url, [], 'GET');
+        if ($this->debug) {
+            echo "    [DEBUG] Checking device info...\n";
+            echo "    [DEBUG] URL: {$url}\n";
+        }
+        
+        // 🔥 Kirim tanpa Authorization header (pakai query param)
+        $response = $this->sendRequest($url, [], 'GET', false); // false = no auth header
         
         // Parse response
         if ($response['success'] && isset($response['data']['status']) && $response['data']['status'] === true) {
@@ -98,7 +167,7 @@ class WablasAPI {
         
         return [
             'success' => false,
-            'message' => isset($response['message']) ? $response['message'] : 'Failed to get device info',
+            'message' => isset($response['data']['message']) ? $response['data']['message'] : 'Failed to get device info',
             'status' => 'disconnected',
             'quota' => 0,
             'expired_date' => null
@@ -115,7 +184,6 @@ class WablasAPI {
         // Hapus karakter non-digit
         $phone = preg_replace('/[^0-9]/', '', $phone);
         
-        // Jika kosong
         if (empty($phone)) {
             return false;
         }
@@ -139,17 +207,17 @@ class WablasAPI {
     }
 
     /**
-     * Kirim HTTP request ke Wablas API
+     * 🔥 FIX: Kirim HTTP request dengan auth logic yang berbeda per endpoint
      * 
      * @param string $url Endpoint URL
      * @param array $data Payload
      * @param string $method HTTP method (POST/GET)
+     * @param bool $useAuthHeader Apakah pakai Authorization header
      * @return array Response
      */
-    private function sendRequest($url, $data = [], $method = 'POST') {
+    private function sendRequest($url, $data = [], $method = 'POST', $useAuthHeader = false) {
         $ch = curl_init();
         
-        // Set options
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -157,18 +225,30 @@ class WablasAPI {
         curl_setopt($ch, CURLOPT_TIMEOUT, 60);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
         
-        // Set headers
-        $headers = [
-            'Content-Type: application/json',
-            'Authorization: ' . $this->token
-        ];
+        // Setup headers
+        $headers = ['Content-Type: application/json'];
+        
+        // 🔥 FIX: Tambah Authorization header HANYA jika diperlukan
+        if ($useAuthHeader) {
+            $authToken = $this->getAuthToken(); // TOKEN.SECRET_KEY
+            $headers[] = 'Authorization: ' . $authToken;
+            
+            if ($this->debug) {
+                echo "    [DEBUG] Auth Token: " . substr($authToken, 0, 20) . "...\n";
+            }
+        }
         
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         
         // Set method dan data
         if ($method == 'POST') {
             curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            $jsonData = json_encode($data);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
+            
+            if ($this->debug) {
+                echo "    [DEBUG] Request Body: {$jsonData}\n";
+            }
         }
         
         // Execute
@@ -178,8 +258,11 @@ class WablasAPI {
         
         curl_close($ch);
         
-        // Handle response
+        // Error handling
         if ($error) {
+            if ($this->debug) {
+                echo "    [DEBUG] CURL Error: {$error}\n";
+            }
             return [
                 'success' => false,
                 'message' => 'CURL Error: ' . $error,
@@ -187,23 +270,31 @@ class WablasAPI {
             ];
         }
         
+        if ($this->debug) {
+            echo "    [DEBUG] HTTP Code: {$httpCode}\n";
+            echo "    [DEBUG] Raw Response: {$response}\n";
+        }
+        
+        // Decode JSON
         $responseData = json_decode($response, true);
         
-        // Jika response tidak valid JSON
         if (json_last_error() !== JSON_ERROR_NONE) {
             return [
                 'success' => false,
-                'message' => 'Invalid JSON response',
+                'message' => 'Invalid JSON response: ' . json_last_error_msg(),
                 'raw_response' => $response,
                 'http_code' => $httpCode
             ];
         }
         
-        // Success
+        // Check HTTP status
+        $isSuccess = ($httpCode >= 200 && $httpCode < 300);
+        
         return [
-            'success' => ($httpCode == 200 || $httpCode == 201),
+            'success' => $isSuccess,
             'http_code' => $httpCode,
-            'data' => $responseData
+            'data' => $responseData,
+            'message' => !$isSuccess ? "HTTP Error {$httpCode}" : null
         ];
     }
 
@@ -228,15 +319,13 @@ class WablasAPI {
         }
         
         // Parse expired date dari response Wablas
-        $expiredDate = $deviceInfo['expired_date']; // Format: "2026-02-01"
+        $expiredDate = $deviceInfo['expired_date'];
         $today = date('Y-m-d');
         $isExpired = false;
         $daysRemaining = 0;
         
         if ($expiredDate) {
             $isExpired = ($today > $expiredDate);
-            
-            // Hitung sisa hari
             $diff = strtotime($expiredDate) - strtotime($today);
             $daysRemaining = floor($diff / (60 * 60 * 24));
         }

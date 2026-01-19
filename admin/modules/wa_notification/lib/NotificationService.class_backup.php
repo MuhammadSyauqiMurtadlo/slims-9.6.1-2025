@@ -37,20 +37,46 @@ class NotificationService {
         }
 
         // 2. Cek status Wablas
-        $status = $this->wablas->checkStatus();
-        if ($status['is_expired']) {
-            $result['errors'][] = 'Wablas subscription has expired';
-            return $result;
-        }
+        //! $status = $this->wablas->checkStatus();
+        //! if ($status['is_expired']) {
+        //!     $result['errors'][] = 'Wablas subscription has expired';
+        //!     return $result;
+        //! }
+        echo "Checking Wablas status...\n"; // DEBUG
+                $status = $this->wablas->getFullStatus();
+    if (!$status['success']) {
+                $result['errors'][] = 'Failed to connect to Wablas: ' . $status['message'];
+        return $result;
+    }
+    
+    if ($status['is_expired']) {
+        $result['errors'][] = 'Wablas subscription has expired on ' . $status['expired_date'];
+        return $result;
+    }
+    echo "Wablas status: OK\n"; // DEBUG
 
         // 3. Ambil semua jadwal aktif
-        $schedules = $this->getActiveSchedules();
+        //! $schedules = $this->getActiveSchedules();
+        echo "Getting active schedules...\n"; // DEBUG
+    $schedules = $this->getActiveSchedules();
+    
+    if (empty($schedules)) {
+        $result['errors'][] = 'No active schedules found';
+        return $result;
+    }
+    echo "Found " . count($schedules) . " active schedules\n"; // DEBUG
 
         // 4. Loop setiap jadwal
         foreach ($schedules as $schedule) {
+            //! $loans = $this->getLoansForNotification($schedule);
+            //! foreach ($loans as $loan) {
+            echo "\nProcessing schedule: " . $schedule['notification_type'] . " (days_before: " . $schedule['days_before'] . ")\n"; // DEBUG
+        
             $loans = $this->getLoansForNotification($schedule);
-            
+            echo "Found " . count($loans) . " loans for this schedule\n"; // DEBUG
+        
             foreach ($loans as $loan) {
+            echo "  - Processing loan_id: " . $loan['loan_id'] . " for member: " . $loan['member_name'] . "\n"; // DEBUG
                 $result['total_processed']++;
                 
                 // Cek apakah sudah pernah dikirim hari ini
