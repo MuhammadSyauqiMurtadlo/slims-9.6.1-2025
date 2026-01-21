@@ -11,7 +11,7 @@ class WablasAPI {
     private $token;
     private $secretKey;
     private $db;
-    private $debug = true; // Enable debug mode
+    private $debug = false; // Enable debug mode
 
     public function __construct($dbs) {
         $this->db = $dbs;

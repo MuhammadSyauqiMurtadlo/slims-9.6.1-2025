@@ -2,17 +2,27 @@
 /**
  * Log Pengiriman WhatsApp
  * File: /admin/modules/wa_notification/logs.php
+ * 
+ * FIXED VERSION - Filter berfungsi normal di iframe SLiMS
  */
 
 // key to authenticate
 define('INDEX_AUTH', '1');
 
 // main system configuration
-require '../../../sysconfig.inc.php';
+if (!defined('SB')) {
+    require '../../../sysconfig.inc.php';
+    // start the session
+    require SB.'admin/default/session.inc.php';
+}
 
-// start the session
-require SB.'admin/default/session.inc.php';
+// IP based access limitation
+require LIB.'ip_based_access.inc.php';
+do_checkIP('smc');
+do_checkIP('smc-system');
+
 require SB.'admin/default/session_check.inc.php';
+require SIMBIO.'simbio_GUI/form_maker/simbio_form_table_AJAX.inc.php';
 require SIMBIO.'simbio_GUI/paging/simbio_paging.inc.php';
 
 // privileges checking
@@ -91,6 +101,21 @@ $filters = [
     'search' => getFilterValue('search')
 ];
 
+// Sanitize date format
+if (!empty($filters['date']) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $filters['date'])) {
+    $filters['date'] = ''; // Invalid format, reset
+}
+
+// Validate status values
+if (!empty($filters['status']) && !in_array($filters['status'], ['success', 'failed', 'pending'])) {
+    $filters['status'] = '';
+}
+
+// Validate type values
+if (!empty($filters['type']) && !in_array($filters['type'], ['H-3', 'H-2', 'H-1', 'H+0'])) {
+    $filters['type'] = '';
+}
+
 // Pagination setup
 $records_per_page = 20;
 $current_page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
@@ -144,7 +169,8 @@ $query_string = !empty($query_params) ? '&' . http_build_query($query_params) : 
 <!-- ======================================================================== -->
 <div class="infoBox">
     <h4><?php echo __('Filter Logs'); ?></h4>
-    <form method="GET" action="" class="form-inline" style="gap: 10px;">
+    <!-- 🔥 FIX: Form action langsung ke file ini, pattern sama dengan membership -->
+    <form name="filterLogs" action="<?php echo $_SERVER['PHP_SELF']; ?>" id="filterLogs" method="get" class="form-inline" style="gap: 10px;">
         
         <!-- Status Filter -->
         <select name="status" class="form-control">
@@ -182,8 +208,9 @@ $query_string = !empty($query_params) ? '&' . http_build_query($query_params) : 
         >
         
         <!-- Buttons -->
-        <button type="submit" class="btn btn-primary"><?php echo __('Filter'); ?></button>
-        <a href="logs.php" class="btn btn-default"><?php echo __('Reset'); ?></a>
+        <!-- 🔥 FIX: Button syntax yang benar -->
+        <input type="submit" value="<?php echo __('Filter'); ?>" class="btn btn-primary" />
+        <a href="<?php echo $_SERVER['PHP_SELF']; ?>" class="btn btn-default"><?php echo __('Reset'); ?></a>
     </form>
 </div>
 
@@ -326,9 +353,10 @@ $query_string = !empty($query_params) ? '&' . http_build_query($query_params) : 
 <!-- PAGINATION -->
 <!-- ======================================================================== -->
 <?php
+// 🔥 FIX: Pagination pakai $_SERVER['PHP_SELF'] biar konsisten
 // create pagination object
 $paging = new simbio_paging($total_records);
-$paging->setValue('paging_link', 'logs.php?page=[page_number]' . $query_string);
+$paging->setValue('paging_link', $_SERVER['PHP_SELF'] . '?page=[page_number]' . $query_string);
 $paging->setPagingRange($records_per_page);
 
 // show pagination

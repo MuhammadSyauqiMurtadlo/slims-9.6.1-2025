@@ -168,19 +168,19 @@ $status = $wablas->getFullStatus();
 <!-- Quick Links -->
 <div class="infoBox">
     <h3><?php echo __('Other Menus'); ?></h3>
-    <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
-        <a href="templates.php" class="btn btn-primary">
+    <div style="display:flex; gap:10px; margin-top:15px; flex-wrap:wrap;">
+
+        <a href="<?php echo MWB; ?>wa_notification/templates.php" class="btn btn-primary">
             <i class="fas fa-file-alt"></i> <?php echo __('Message Templates'); ?>
         </a>
-        <a href="schedules.php" class="btn btn-primary">
-            <i class="fas fa-calendar-check"></i> <?php echo __('Notification Schedules'); ?>
-        </a>
-        <a href="logs.php" class="btn btn-primary">
+        <a href="<?php echo MWB; ?>wa_notification/logs.php" class="btn btn-primary">
             <i class="fas fa-history"></i> <?php echo __('Delivery Logs'); ?>
         </a>
-        <a href="settings.php" class="btn btn-primary">
+
+        <a href="<?php echo MWB; ?>wa_notification/settings.php" class="btn btn-primary">
             <i class="fas fa-cog"></i> <?php echo __('Settings'); ?>
         </a>
+
     </div>
 </div>
 
