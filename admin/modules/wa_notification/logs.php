@@ -177,7 +177,7 @@ $query_string = !empty($query_params) ? '&' . http_build_query($query_params) : 
             <option value=""><?php echo __('All Status'); ?></option>
             <option value="success" <?php echo $filters['status'] === 'success' ? 'selected' : ''; ?>><?php echo __('Success'); ?></option>
             <option value="failed" <?php echo $filters['status'] === 'failed' ? 'selected' : ''; ?>><?php echo __('Failed'); ?></option>
-            <option value="pending" <?php echo $filters['status'] === 'pending' ? 'selected' : ''; ?>><?php echo __('Pending'); ?></option>
+            <!-- <option value="pending" <?php echo $filters['status'] === 'pending' ? 'selected' : ''; ?>><?php echo __('Pending'); ?></option> -->
         </select>
         
         <!-- Type Filter -->
@@ -270,7 +270,7 @@ $query_string = !empty($query_params) ? '&' . http_build_query($query_params) : 
             <th width="8%"><?php echo __('Due Date'); ?></th>
             <th width="8%"><?php echo __('Type'); ?></th>
             <th width="8%"><?php echo __('Status'); ?></th>
-            <th width="7%"><?php echo __('Action'); ?></th>
+            <!-- <th width="7%"><?php echo __('Action'); ?></th> -->
         </tr>
     </thead>
     <tbody>
@@ -333,7 +333,7 @@ $query_string = !empty($query_params) ? '&' . http_build_query($query_params) : 
                     </td>
                     
                     <!-- Action -->
-                    <td>
+                    <!-- <td>
                         <a 
                             href="#" 
                             onclick="showDetail(<?php echo $log['log_id']; ?>); return false;" 
@@ -342,7 +342,7 @@ $query_string = !empty($query_params) ? '&' . http_build_query($query_params) : 
                         >
                             <?php echo __('Detail'); ?>
                         </a>
-                    </td>
+                    </td> -->
                 </tr>
             <?php endwhile; ?>
         <?php endif; ?>

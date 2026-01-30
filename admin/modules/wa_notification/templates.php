@@ -321,8 +321,8 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
     // Info perintah cron job
     echo '<div class="infoBox note" style="background-color: #070707; border: 1px solid #b3d4fc; padding: 12px; border-radius: 5px; margin-top: 20px;">
             <strong>&#x1F4D8; '.__('Cron Job Command').':</strong>
-            <pre style="background: #2d2d2d; color: #f8f8f2; padding: 10px; border-radius: 5px; margin-top: 10px; overflow-x: auto;">0 8 * * * /usr/bin/php '.dirname(__FILE__).'/cron.php >> '.dirname(__FILE__).'/cron.log 2>&1</pre>
-            <p><small>'.__('The command above will run the cron every day at 08:00 WIB').'</small></p>
+            <pre style="background: #2d2d2d; color: #f8f8f2; padding: 10px; border-radius: 5px; margin-top: 10px; overflow-x: auto;">0 7 * * * /usr/bin/php '.dirname(__FILE__).'/cron.php >> '.dirname(__FILE__).'/cron.log 2>&1</pre>
+            <p><small>'.__('The command above will run the cron every day at 07:00 WIB').'</small></p>
           </div>';
 }
 /* MAIN CONTENT END */
