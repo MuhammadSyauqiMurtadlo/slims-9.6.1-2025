@@ -62,37 +62,55 @@ class NotificationService {
     echo "Found " . count($loans) . " loan(s)\n";
     
     // 🔥 GROUP loans by member_id
-    $groupedLoans = [];
-    foreach ($loans as $loan) {
-        $memberId = $loan['member_id'];
-        if (!isset($groupedLoans[$memberId])) {
-            $groupedLoans[$memberId] = [
-                'member_data' => [
-                    'member_id' => $loan['member_id'],
-                    'member_name' => $loan['member_name'],
-                    'member_phone' => $loan['member_phone']
-                ],
-                'books' => []
-            ];
-        }
-        $groupedLoans[$memberId]['books'][] = [
-            'loan_id' => $loan['loan_id'],
-            'book_title' => $loan['book_title'],
-            'item_code' => $loan['item_code'],
-            'due_date' => $loan['due_date']
+    // 🔥 GROUP loans by member_id dan pisahkan today vs overdue
+$groupedLoans = [];
+foreach ($loans as $loan) {
+    $memberId = $loan['member_id'];
+    if (!isset($groupedLoans[$memberId])) {
+        $groupedLoans[$memberId] = [
+            'member_data' => [
+                'member_id' => $loan['member_id'],
+                'member_name' => $loan['member_name'],
+                'member_phone' => $loan['member_phone']
+            ],
+            'books_today' => [],    // 🔥 Buku jatuh tempo hari ini
+            'books_overdue' => []   // 🔥 Buku yang sudah lewat
         ];
     }
     
+    $bookData = [
+        'loan_id' => $loan['loan_id'],
+        'book_title' => $loan['book_title'],
+        'item_code' => $loan['item_code'],
+        'due_date' => $loan['due_date']
+    ];
+    
+    // 🔥 Pisahkan berdasarkan status_category
+    if (isset($loan['status_category']) && $loan['status_category'] == 'overdue') {
+        $groupedLoans[$memberId]['books_overdue'][] = $bookData;
+    } else {
+        $groupedLoans[$memberId]['books_today'][] = $bookData;
+    }
+}
+    
     // 🔥 Process per member (bukan per loan)
-    foreach ($groupedLoans as $memberId => $data) {
-        $memberData = $data['member_data'];
-        $books = $data['books'];
+    // 🔥 Process per member (bukan per loan)
+foreach ($groupedLoans as $memberId => $data) {
+    $memberData = $data['member_data'];
+    
+    // 🔥 FIX: Hitung total buku dari kedua array
+    $totalBooks = count($data['books_today']) + count($data['books_overdue']);
+    
+    echo "  → Processing: {$memberData['member_name']} ({$totalBooks} book(s))\n";
+    $result['total_processed']++;
         
-        echo "  → Processing: {$memberData['member_name']} (" . count($books) . " book(s))\n";
-        $result['total_processed']++;
-        
-        // Generate pesan untuk semua buku member ini
-        $message = $this->generateMessageForMultipleBooks($memberData, $books, $schedule['notification_type']);
+        // Generate pesan untuk semua buku member ini (pisahkan today & overdue)
+    $message = $this->generateMessageForMultipleBooks(
+    $memberData, 
+    $data['books_today'],    // 🔥 Buku jatuh tempo hari ini
+    $data['books_overdue'],  // 🔥 Buku yang sudah lewat
+    $schedule['notification_type']
+);
         
         if (empty($message)) {
             echo "    ✗ Failed: Empty message (template inactive?)\n";
@@ -104,7 +122,7 @@ class NotificationService {
         echo "    Sending to: {$memberData['member_phone']}\n";
         
         // Kirim WhatsApp (1x untuk semua buku member ini)
-        $sendResult = $this->sendNotificationForMultipleBooks($memberData, $books, $message, $schedule['notification_type']);
+        $sendResult = $this->sendNotificationForMultipleBooks($memberData, $data['books_today'], $data['books_overdue'], $message, $schedule['notification_type']);
         
         if ($sendResult['success']) {
             echo "    ✓ SUCCESS\n";
@@ -162,14 +180,18 @@ class NotificationService {
     
     // 🔥 FIX: Jika H+0, ambil semua yang jatuh tempo hari ini DAN yang sudah lewat
     if ($daysBefore == 0) {
-        $sql = "SELECT 
-                    l.loan_id,
-                    l.member_id,
-                    l.item_code,
-                    l.due_date,
-                    m.member_name,
-                    m.member_phone,
-                    b.title as book_title
+    $sql = "SELECT 
+                l.loan_id,
+                l.member_id,
+                l.item_code,
+                l.due_date,
+                m.member_name,
+                m.member_phone,
+                b.title as book_title,
+                CASE 
+                    WHEN DATE(l.due_date) = CURDATE() THEN 'today'
+                    WHEN DATE(l.due_date) < CURDATE() THEN 'overdue'
+                END as status_category
                 FROM loan l
                 INNER JOIN member m ON l.member_id = m.member_id
                 INNER JOIN item i ON l.item_code = i.item_code
@@ -273,7 +295,7 @@ class NotificationService {
         return $message;
     }
 
-    private function generateMessageForMultipleBooks($memberData, $books, $notificationType) {
+    private function generateMessageForMultipleBooks($memberData, $booksToday, $booksOverdue, $notificationType) {
     $notificationType = $this->db->real_escape_string($notificationType);
     $query = $this->db->query("SELECT template_message FROM wa_templates 
                                WHERE notification_type = '{$notificationType}' 
@@ -287,22 +309,55 @@ class NotificationService {
     $row = $query->fetch_assoc();
     $template = $row['template_message'];
     
-    // 🔥 Buat daftar buku
-    $bookList = '';
-    foreach ($books as $index => $book) {
-        $no = $index + 1;
-        $bookList .= "{$no}. {$book['book_title']} (Kode: {$book['item_code']}, Jatuh Tempo: " . date('d-m-Y', strtotime($book['due_date'])) . ")\n";
+    // 🔥 Buat daftar buku yang jatuh tempo HARI INI
+    $bookListToday = '';
+    if (!empty($booksToday)) {
+        foreach ($booksToday as $index => $book) {
+            $no = $index + 1;
+            $bookListToday .= "{$no}. {$book['book_title']} (Kode: {$book['item_code']})\n";
+        }
     }
     
-    // Replace variabel - untuk multiple books, {book_title} jadi list
+    // 🔥 Buat daftar buku yang SUDAH LEWAT (overdue)
+    $bookListOverdue = '';
+    if (!empty($booksOverdue)) {
+        foreach ($booksOverdue as $index => $book) {
+            $no = $index + 1;
+            $daysLate = floor((strtotime('today') - strtotime($book['due_date'])) / 86400);
+            $bookListOverdue .= "{$no}. {$book['book_title']} (Kode: {$book['item_code']}, Terlambat: {$daysLate} hari)\n";
+        }
+    }
+    
+    // 🔥 Gabungkan semua buku untuk pengganti {book_title}
+    $allBooksList = '';
+    
+    // Tambahkan section buku hari ini
+    if (!empty($bookListToday)) {
+        $allBooksList .= "📅 *Jatuh Tempo Hari Ini:*\n" . $bookListToday . "\n";
+    }
+    
+    // Tambahkan section buku overdue
+    if (!empty($bookListOverdue)) {
+        $allBooksList .= "⚠️ *Sudah Lewat Jatuh Tempo:*\n" . $bookListOverdue;
+    }
+    
+    // Hitung total buku
+    $totalBooks = count($booksToday) + count($booksOverdue);
+    
+    // Ambil due date pertama (prioritas dari buku hari ini, jika kosong ambil dari overdue)
+    $firstDueDate = !empty($booksToday) 
+        ? date('d-m-Y', strtotime($booksToday[0]['due_date'])) 
+        : (!empty($booksOverdue) ? date('d-m-Y', strtotime($booksOverdue[0]['due_date'])) : '-');
+    
+    // Replace variabel
     $message = str_replace(
         ['{member_name}', '{member_id}', '{book_title}', '{item_code}', '{due_date}'],
         [
             $memberData['member_name'],
             $memberData['member_id'],
-            "\n" . $bookList, // 🔥 Ganti dengan list
-            count($books) . ' buku', // Info jumlah buku
-            date('d-m-Y', strtotime($books[0]['due_date'])) // Due date pertama
+            "\n" . $allBooksList,  // 🔥 List yang sudah dipisah
+            $totalBooks . ' buku',
+            $firstDueDate
         ],
         $template
     );
@@ -319,12 +374,15 @@ class NotificationService {
  * @param string $notificationType Notification type
  * @return array Result
  */
-private function sendNotificationForMultipleBooks($memberData, $books, $message, $notificationType) {
+private function sendNotificationForMultipleBooks($memberData, $booksToday, $booksOverdue, $message, $notificationType) {
     // Kirim WhatsApp HANYA 1x
     $sendResult = $this->wablas->sendMessage($memberData['member_phone'], $message);
     
+    // 🔥 Gabungkan semua buku untuk logging
+    $allBooks = array_merge($booksToday, $booksOverdue);
+    
     // 🔥 Simpan log untuk SETIAP buku (tracking purpose)
-    foreach ($books as $book) {
+    foreach ($allBooks as $book) {
         $logData = [
             'loan_id' => $this->db->real_escape_string($book['loan_id']),
             'member_id' => $this->db->real_escape_string($memberData['member_id']),
