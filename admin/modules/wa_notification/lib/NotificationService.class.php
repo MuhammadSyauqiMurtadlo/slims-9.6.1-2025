@@ -56,12 +56,12 @@ class NotificationService {
         }
         echo "Found " . count($schedules) . " active schedules\n";
 
+        // 3. Proses setiap jadwal
         foreach ($schedules as $schedule) {
     echo "\n[SCHEDULE] " . $schedule['notification_type'] . " (days_before: " . $schedule['days_before'] . ")\n";
     $loans = $this->getLoansForNotification($schedule);
     echo "Found " . count($loans) . " loan(s)\n";
     
-    // 🔥 GROUP loans by member_id
     // 🔥 GROUP loans by member_id dan pisahkan today vs overdue
 $groupedLoans = [];
 foreach ($loans as $loan) {
@@ -92,8 +92,6 @@ foreach ($loans as $loan) {
         $groupedLoans[$memberId]['books_today'][] = $bookData;
     }
 }
-    
-    // 🔥 Process per member (bukan per loan)
     // 🔥 Process per member (bukan per loan)
 foreach ($groupedLoans as $memberId => $data) {
     $memberData = $data['member_data'];
@@ -107,9 +105,10 @@ foreach ($groupedLoans as $memberId => $data) {
         // Generate pesan untuk semua buku member ini (pisahkan today & overdue)
     $message = $this->generateMessageForMultipleBooks(
     $memberData, 
-    $data['books_today'],    // 🔥 Buku jatuh tempo hari ini
-    $data['books_overdue'],  // 🔥 Buku yang sudah lewat
-    $schedule['notification_type']
+    $data['books_today'],
+    $data['books_overdue'],
+    $schedule['notification_type'],
+    $schedule['days_before']  // 🔥 Tambah parameter
 );
         
         if (empty($message)) {
@@ -295,7 +294,7 @@ foreach ($groupedLoans as $memberId => $data) {
         return $message;
     }
 
-    private function generateMessageForMultipleBooks($memberData, $booksToday, $booksOverdue, $notificationType) {
+    private function generateMessageForMultipleBooks($memberData, $booksToday, $booksOverdue, $notificationType, $daysBefore = 0) {
     $notificationType = $this->db->real_escape_string($notificationType);
     $query = $this->db->query("SELECT template_message FROM wa_templates 
                                WHERE notification_type = '{$notificationType}' 
@@ -328,18 +327,26 @@ foreach ($groupedLoans as $memberId => $data) {
         }
     }
     
-    // 🔥 Gabungkan semua buku untuk pengganti {book_title}
-    $allBooksList = '';
-    
+   // 🔥 Gabungkan semua buku untuk pengganti {book_title}
+$allBooksList = '';
+
+// 🔥 HANYA untuk H+0 (days_before = 0) tampilkan pemisahan today vs overdue
+if ($daysBefore == 0) {
     // Tambahkan section buku hari ini
     if (!empty($bookListToday)) {
-        $allBooksList .= "📅 *Jatuh Tempo Hari Ini:*\n" . $bookListToday . "\n";
+        $allBooksList .= "*Jatuh Tempo Hari Ini:*\n" . $bookListToday . "\n";
     }
     
     // Tambahkan section buku overdue
     if (!empty($bookListOverdue)) {
-        $allBooksList .= "⚠️ *Sudah Lewat Jatuh Tempo:*\n" . $bookListOverdue;
+        $allBooksList .= "*Sudah Lewat Jatuh Tempo:*\n" . $bookListOverdue;
     }
+} else {
+    // 🔥 H-1, H-2, H-3: Hanya tampilkan buku sesuai jadwal (books_today saja)
+    if (!empty($bookListToday)) {
+        $allBooksList = $bookListToday;
+    }
+}
     
     // Hitung total buku
     $totalBooks = count($booksToday) + count($booksOverdue);
