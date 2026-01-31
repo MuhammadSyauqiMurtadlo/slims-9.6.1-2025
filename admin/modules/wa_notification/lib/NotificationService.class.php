@@ -195,11 +195,11 @@ foreach ($groupedLoans as $memberId => $data) {
                 INNER JOIN member m ON l.member_id = m.member_id
                 INNER JOIN item i ON l.item_code = i.item_code
                 INNER JOIN biblio b ON i.biblio_id = b.biblio_id
-                WHERE l.is_lent = 1
-                  AND l.is_return = 0
-                  AND DATE(l.due_date) <= CURDATE()
-                  AND m.member_phone IS NOT NULL
-                  AND m.member_phone != ''";
+                                WHERE l.is_lent = 1
+                                    AND l.is_return = 0
+                                    AND DATE(l.due_date) = CURDATE()
+                                    AND m.member_phone IS NOT NULL
+                                    AND m.member_phone != ''";
     } else {
         // Untuk H-3, H-2, H-1 tetap pakai logika lama
         $intervalDays = abs($daysBefore);
